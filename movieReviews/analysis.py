@@ -1,6 +1,9 @@
 import pandas as pd
 
+# csv_file is the path to the CSV file containing the film reviews dataset
 csv_file = "data/original.csv"
+
+# row_count is the number of rows to display when showing the first few rows of the dataset
 row_count = 10
 
 try:
@@ -40,5 +43,37 @@ try:
 
 except FileNotFoundError:
     print(f"Error: File not found at path '{csv_file}'.")
+    quit()
 except Exception as e:
     print(f"An error occurred: {e}")
+    quit()
+
+# task B.1 → remove duplicates
+df = df.drop_duplicates().reset_index(drop=True) 
+print(f"\n=== Shape after duplicate removal: {df.shape} ===")
+
+# task B.2 → handle missing values by filling with empty string
+# empty_string is a variable to be used to fill missing values in the dataset 
+empty_string = ""
+df = df.fillna(empty_string)
+print(f"\nMissing values FILLED with: '{empty_string}'")
+
+# task B.3 → convert date columns to datetime
+# datafield name for date in the dataset
+date_column = "review_date"
+df[date_column] = pd.to_datetime(df[date_column], errors="coerce")
+print(f"Converted '{date_column}' to datetime.")
+
+# task B.4 → Trim whitespace in text fields
+# text_columns is a list of column names that contain text data and may require trimming and normalization
+text_columns = ["movie_title", "review_text", "reviewer"]
+for col in text_columns:
+    df[col] = df[col].str.strip()
+    df[col] = df[col].str.lower() # Normalize text to lowercase
+    print(f"Text normalized in column '{col}'.")
+
+# task B.5 → Convert numeric columns to proper dtype
+numeric_columns = ["rating"]  # Example numeric column
+for col in numeric_columns:
+    df[col] = pd.to_numeric(df[col], errors="coerce")
+    print(f"Converted '{col}' to numeric dtype.")
