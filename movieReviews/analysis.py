@@ -151,3 +151,218 @@ else:
     if "views" in df.columns:
         print("\nSummary Statistics for Views:")
         print(df["views"].describe())
+
+# ================================
+#        TASK D — FILTERING & GROUPING
+# ================================
+
+print("\n=== TASK D: FILTERING & GROUPING ===")
+
+# -------------------------------------------
+# D.1 — MOVIE REVIEW FILTERING & GROUPING
+# -------------------------------------------
+
+print("\n--- D.1 MOVIE REVIEWS ---")
+
+# 1. Show reviews with rating ≥ 8
+if "rating" in df.columns:
+    high_ratings = df[df["rating"] >= 8]
+    print("\nReviews with Rating ≥ 8:")
+    print(high_ratings[["movie_title", "rating", "review_text", "reviewer"]])
+else:
+    print("Rating column not found — skipping this section.")
+
+# 2. Top 5 most-reviewed movies
+if "movie_title" in df.columns:
+    print("\nTop 5 Most-Reviewed Movies:")
+    top_movies = df["movie_title"].value_counts().head(5)
+    print(top_movies)
+else:
+    print("movie_title column not found — skipping.")
+
+# 3. Average rating per movie
+if "rating" in df.columns and "movie_title" in df.columns:
+    print("\nAverage Rating per Movie:")
+    avg_rating = df.groupby("movie_title")["rating"].mean().sort_values(ascending=False)
+    print(avg_rating)
+else:
+    print("Missing columns for average rating calculation.")
+
+
+# -------------------------------------------
+# D.2 — NEWS FILTERING & GROUPING
+# -------------------------------------------
+
+print("\n--- D.2 NEWS ARTICLES ---")
+
+# Check if news data is present
+news_available = any(col in df.columns for col in ["category", "author", "publish_date"])
+
+if not news_available:
+    print("No news-related fields available — skipping news analysis.")
+else:
+    # 1. Articles in the “Technology” category
+    if "category" in df.columns:
+        tech_articles = df[df["category"].str.lower() == "tech"]
+        print("\nArticles in the 'Technology' Category:")
+        print(tech_articles[["author", "publish_date", "views"]])
+    else:
+        print("category column missing — cannot filter by category.")
+
+    # 2. Most active author
+    if "author" in df.columns:
+        print("\nMost Active Author:")
+        most_active = df["author"].value_counts().head(1)
+        print(most_active)
+    else:
+        print("author column missing — cannot compute most active author.")
+
+    # 3. Number of articles published each month
+    if "publish_date" in df.columns:
+        df["publish_date"] = pd.to_datetime(df["publish_date"], errors="coerce")
+        df["month"] = df["publish_date"].dt.month_name()
+
+        print("\nArticles Published Per Month:")
+        month_counts = df["month"].value_counts()
+        print(month_counts)
+    else:
+        print("publish_date column missing — cannot compute monthly article output.")
+
+# ================================
+#        TASK E — DATA VISUALIZATION (Matplotlib)
+# ================================
+print("\n=== TASK E: DATA VISUALIZATION (Matplotlib) ===")
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Ensure dates are datetime if present
+if "review_date" in df.columns:
+    df["review_date"] = pd.to_datetime(df["review_date"], errors="coerce")
+if "publish_date" in df.columns:
+    df["publish_date"] = pd.to_datetime(df["publish_date"], errors="coerce")
+
+# -------------------------------------------
+# E.1 — MOVIE REVIEWS
+# -------------------------------------------
+print("\n--- E.1 MOVIE REVIEWS ---")
+
+# 1) Histogram: rating distribution
+if "rating" in df.columns:
+    plt.figure(figsize=(8, 5))
+    # Use integer bins 0..10 (inclusive edges)
+    bins = range(int(df["rating"].min()) if pd.notna(df["rating"].min()) else 0,
+                 int(df["rating"].max()) + 2 if pd.notna(df["rating"].max()) else 11)
+    plt.hist(df["rating"].dropna(), bins=bins, edgecolor="black")
+    plt.title("Distribution of Movie Ratings")
+    plt.xlabel("Rating")
+    plt.ylabel("Frequency")
+    plt.xticks(range(min(bins), max(bins)))
+    plt.tight_layout()
+    plt.show()
+else:
+    print("Skipping rating histogram — 'rating' column not found.")
+
+# 2) Bar plot: average rating per movie
+if {"movie_title", "rating"}.issubset(df.columns):
+    avg_per_movie = (
+        df.groupby("movie_title")["rating"]
+          .mean()
+          .sort_values(ascending=False)
+    )
+
+    # Plot top N for readability
+    TOP_N = 15
+    to_plot = avg_per_movie.head(TOP_N)
+
+    plt.figure(figsize=(10, 6))
+    to_plot.plot(kind="bar", color="#1f77b4", edgecolor="black")
+    plt.title(f"Average Rating per Movie (Top {min(TOP_N, len(to_plot))})")
+    plt.xlabel("Movie")
+    plt.ylabel("Average Rating")
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+    plt.show()
+else:
+    print("Skipping bar plot — need both 'movie_title' and 'rating' columns.")
+
+# 3) Line plot: number of reviews over time (monthly)
+if "review_date" in df.columns:
+    reviews_over_time = (
+        df.set_index("review_date")
+          .sort_index()
+          .resample("ME")
+          .size()
+    )
+
+    if not reviews_over_time.empty:
+        plt.figure(figsize=(9, 5))
+        reviews_over_time.plot(marker="o")
+        plt.title("Number of Reviews Over Time (Monthly)")
+        plt.xlabel("Month")
+        plt.ylabel("Review Count")
+        plt.tight_layout()
+        plt.show()
+    else:
+        print("No valid dates in 'review_date' to plot reviews over time.")
+else:
+    print("Skipping reviews-over-time plot — 'review_date' not found.")
+
+
+# -------------------------------------------
+# E.2 — NEWS
+# -------------------------------------------
+print("\n--- E.2 NEWS ---")
+
+# 1) Bar chart: articles per category
+if "category" in df.columns:
+    cat_counts = df["category"].dropna().astype(str).str.strip().value_counts()
+
+    if not cat_counts.empty:
+        plt.figure(figsize=(8, 5))
+        cat_counts.plot(kind="bar", color="#2ca02c", edgecolor="black")
+        plt.title("Articles per Category")
+        plt.xlabel("Category")
+        plt.ylabel("Article Count")
+        plt.xticks(rotation=45, ha="right")
+        plt.tight_layout()
+        plt.show()
+    else:
+        print("No non-empty values in 'category' to plot.")
+else:
+    print("Skipping category bar chart — 'category' column not found.")
+
+# 2) Line plot: articles per month
+if "publish_date" in df.columns:
+    articles_per_month = (
+        df.set_index("publish_date")
+          .sort_index()
+          .resample("ME")
+          .size()
+    )
+
+    if not articles_per_month.empty:
+        plt.figure(figsize=(9, 5))
+        articles_per_month.plot(marker="o", color="#ff7f0e")
+        plt.title("Articles per Month")
+        plt.xlabel("Month")
+        plt.ylabel("Article Count")
+        plt.tight_layout()
+        plt.show()
+    else:
+        print("No valid dates in 'publish_date' to plot articles per month.")
+else:
+    print("Skipping articles-per-month line plot — 'publish_date' not found.")
+
+# 3) Histogram: article lengths (word count)
+# If your news items are in the same dataframe, we can still use 'word_count' as length proxy.
+if "word_count" in df.columns:
+    plt.figure(figsize=(8, 5))
+    plt.hist(df["word_count"].dropna(), bins=15, edgecolor="black", color="#9467bd")
+    plt.title("Histogram of Article Lengths (Word Count)")
+    plt.xlabel("Word Count")
+    plt.ylabel("Frequency")
+    plt.tight_layout()
+    plt.show()
+else:
+    print("Skipping word count histogram — 'word_count' column not found.")
