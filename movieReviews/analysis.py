@@ -1,4 +1,5 @@
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # csv_file is the path to the CSV file containing the film reviews dataset
 csv_file = "data/original.csv"
@@ -76,4 +77,77 @@ for col in text_columns:
 numeric_columns = ["rating"]  # Example numeric column
 for col in numeric_columns:
     df[col] = pd.to_numeric(df[col], errors="coerce")
-    print(f"Converted '{col}' to numeric dtype.")
+    print(f"Converted '{col}' to numeric dtype.")   
+
+# ================================
+#        TASK C — STATISTICS
+# ================================
+
+print("\n=== TASK C: BASIC STATISTICAL ANALYSIS ===")
+
+# -------------------------------------------
+# C.1 — MOVIE REVIEWS STATISTICS
+# -------------------------------------------
+
+print("\n--- C.1 MOVIE REVIEW STATISTICS ---")
+
+if "rating" in df.columns:
+
+    # Mean, median, min, max rating
+    print("\nRating Statistics:")
+    print(f"Mean rating:  {df['rating'].mean():.2f}")
+    print(f"Median rating:{df['rating'].median():.2f}")
+    print(f"Min rating:   {df['rating'].min()}")
+    print(f"Max rating:   {df['rating'].max()}")
+
+    # Count of reviews per movie
+    print("\nReviews per Movie:")
+    review_counts = df["movie_title"].value_counts()
+    print(review_counts)
+
+    # Distribution of ratings - histogram
+
+    plt.figure(figsize=(8, 5))
+    plt.hist(df["rating"], bins=10, edgecolor="black")
+    plt.title("Distribution of Movie Ratings")
+    plt.xlabel("Rating")
+    plt.ylabel("Frequency")
+    plt.tight_layout()
+    plt.show()
+
+else:
+    print("No movie review fields found.")
+
+
+# -------------------------------------------
+# C.2 — NEWS STATISTICS (conditional)
+# -------------------------------------------
+
+print("\n--- C.2 NEWS STATISTICS (IF AVAILABLE) ---")
+
+has_news = any(col in df.columns for col in ["category", "reviewer", "publish_date", "views"])
+
+if not has_news:
+    print("No news-related fields found in dataset.")
+else:
+    # Count of articles per category
+    if "category" in df.columns:
+        print("\nArticles per Category:")
+        print(df["category"].value_counts())
+
+    # Articles per reviewer
+    if "reviewer" in df.columns:
+        print("\nArticles per Reviewer:")
+        print(df["reviewer"].value_counts())
+
+    # Most frequent publish day
+    if "publish_date" in df.columns:
+        df["publish_date"] = pd.to_datetime(df["publish_date"], errors="coerce")
+        df["publish_day"] = df["publish_date"].dt.day_name()
+        print("\nMost Frequent Publish Day:")
+        print(df["publish_day"].value_counts().head(1))
+
+    # Summary stats for numeric columns
+    if "views" in df.columns:
+        print("\nSummary Statistics for Views:")
+        print(df["views"].describe())
