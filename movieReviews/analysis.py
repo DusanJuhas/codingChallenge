@@ -1,11 +1,17 @@
+"""A beginner‑friendly Python project designed to verify fundamental data‑analysis skills"""
+
+import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 
 # csv_file is the path to the CSV file containing the film reviews dataset
-csv_file = "data/original.csv"
+CVS_FILE = "data/original.csv"
 
 # row_count is the number of rows to display when showing the first few rows of the dataset
-row_count = 10
+ROW_COUNT = 10
+
+# Set to False to skip showing plots (useful for non-interactive environments)
+SHOW_PLOTS = False
 
 # ============================================
 #        TASK A — EXPLORATORY DATA ANALYSIS
@@ -13,10 +19,10 @@ row_count = 10
 
 try:
 # task A.1 → Load the dataset
-    df = pd.read_csv(csv_file)
-    print(f"First {row_count} rows of the dataset:\n")
+    df = pd.read_csv(CVS_FILE)
+    print(f"First {ROW_COUNT} rows of the dataset:\n")
 # task A.2.a → Display first 10 rows
-    print(df.head(row_count))
+    print(df.head(ROW_COUNT))
 # task A.2.b → Display the shape of the dataset
     print(df.shape)
 # task A.2.c → Display the column names
@@ -32,7 +38,7 @@ try:
     print("\nMissing values per column (percentage):")
     missing_pct = (missing_counts / len(df) * 100).round(2)
     print(missing_pct.astype(str) + " %")
-  
+
 # Rows that have ANY missing values
     rows_with_missing = df[df.isna().any(axis=1)]
     print(f"\nTotal rows with any missing value: {len(rows_with_missing)}")
@@ -47,34 +53,34 @@ try:
         print(f"\nShowing up to the duplicated rows: \n{duplicated_rows}")
 
 except FileNotFoundError:
-    print(f"Error: File not found at path '{csv_file}'.")
-    quit()
-except Exception as e:
-    print(f"An error occurred: {e}")
-    quit()
+    print(f"Error: File not found at path '{CVS_FILE}'.")
+    sys.exit(1)
+except pd.errors.ParserError as e:
+    print(f"Error parsing CSV file: {e}")
+    sys.exit(1)
 
 # ================================
 #        TASK B — DATA CLEANING
 # ================================
 
 # task B.1 → remove duplicates
-df = df.drop_duplicates().reset_index(drop=True) 
+df = df.drop_duplicates().reset_index(drop=True)
 print(f"\n=== Shape after duplicate removal: {df.shape} ===")
 
 # task B.2 → handle missing values by filling with empty string
-# empty_string is a variable to be used to fill missing values in the dataset 
-empty_string = ""
-df = df.fillna(empty_string)
-print(f"\nMissing values FILLED with: '{empty_string}'")
+# empty_string is a variable to be used to fill missing values in the dataset
+EMPTY_STRING = ""
+df = df.fillna(EMPTY_STRING)
+print(f"\nMissing values FILLED with: '{EMPTY_STRING}'")
 
 # task B.3 → convert date columns to datetime
 # datafield name for date in the dataset
-date_column = "review_date"
-df[date_column] = pd.to_datetime(df[date_column], errors="coerce")
-print(f"Converted '{date_column}' to datetime.")
+DATE_COLUMN = "review_date"
+df[DATE_COLUMN] = pd.to_datetime(df[DATE_COLUMN], errors="coerce")
+print(f"Converted '{DATE_COLUMN}' to datetime.")
 
 # task B.4 → Trim whitespace in text fields
-# text_columns is a list of column names that contain text data and may require trimming and normalization
+# a list of column names that contain text data and may require trimming and normalization
 text_columns = ["movie_title", "review_text", "reviewer"]
 for col in text_columns:
     df[col] = df[col].str.strip()
@@ -85,7 +91,7 @@ for col in text_columns:
 numeric_columns = ["rating"]  # Example numeric column
 for col in numeric_columns:
     df[col] = pd.to_numeric(df[col], errors="coerce")
-    print(f"Converted '{col}' to numeric dtype.")   
+    print(f"Converted '{col}' to numeric dtype.")
 
 # ================================
 #        TASK C — STATISTICS
@@ -122,7 +128,8 @@ if "rating" in df.columns:
     plt.ylabel("Frequency")
     plt.tight_layout()
     plt.savefig("plots/movie_ratings_histogram.png")
-    plt.show()
+    if SHOW_PLOTS:
+        plt.show()
 
 else:
     print("No movie review fields found.")
@@ -242,9 +249,6 @@ else:
 # ================================
 print("\n=== TASK E: DATA VISUALIZATION (Matplotlib) ===")
 
-import matplotlib.pyplot as plt
-import pandas as pd
-
 # Ensure dates are datetime if present
 if "review_date" in df.columns:
     df["review_date"] = pd.to_datetime(df["review_date"], errors="coerce")
@@ -269,7 +273,8 @@ if "rating" in df.columns:
     plt.xticks(range(min(bins), max(bins)))
     plt.tight_layout()
     plt.savefig("plots/movie_ratings_histogram.png")
-    plt.show()
+    if SHOW_PLOTS:
+        plt.show()
 else:
     print("Skipping rating histogram — 'rating' column not found.")
 
@@ -293,7 +298,8 @@ if {"movie_title", "rating"}.issubset(df.columns):
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
     plt.savefig("plots/movie_average_ratings.png")
-    plt.show()
+    if SHOW_PLOTS:
+        plt.show()
 else:
     print("Skipping bar plot — need both 'movie_title' and 'rating' columns.")
 
@@ -314,7 +320,8 @@ if "review_date" in df.columns:
         plt.ylabel("Review Count")
         plt.tight_layout()
         plt.savefig("plots/reviews_over_time.png")
-        plt.show()
+        if SHOW_PLOTS:
+            plt.show()
     else:
         print("No valid dates in 'review_date' to plot reviews over time.")
 else:
@@ -339,7 +346,8 @@ if "category" in df.columns:
         plt.xticks(rotation=45, ha="right")
         plt.tight_layout()
         plt.savefig("plots/articles_per_category.png")
-        plt.show()
+        if SHOW_PLOTS:
+            plt.show()
     else:
         print("No non-empty values in 'category' to plot.")
 else:
@@ -362,7 +370,8 @@ if "publish_date" in df.columns:
         plt.ylabel("Article Count")
         plt.tight_layout()
         plt.savefig("plots/articles_per_month.png")
-        plt.show()
+        if SHOW_PLOTS:
+            plt.show()
     else:
         print("No valid dates in 'publish_date' to plot articles per month.")
 else:
@@ -378,6 +387,17 @@ if "word_count" in df.columns:
     plt.ylabel("Frequency")
     plt.tight_layout()
     plt.savefig("plots/article_lengths_histogram.png")
-    plt.show()
+    if SHOW_PLOTS:
+        plt.show()
 else:
     print("Skipping word count histogram — 'word_count' column not found.")
+
+# ================================
+#        TASK G — Results Export
+# ================================
+
+# G.1 Export the cleaned and enhanced dataset to a new CSV file
+OUTPUT_FILE = "data\\cleaned_data.csv"
+print(df)
+df.to_csv(OUTPUT_FILE, index=False)
+print(f"Enhanced dataset exported to: {OUTPUT_FILE}")
