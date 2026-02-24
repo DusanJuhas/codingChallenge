@@ -7,6 +7,10 @@ csv_file = "data/original.csv"
 # row_count is the number of rows to display when showing the first few rows of the dataset
 row_count = 10
 
+# ============================================
+#        TASK A — EXPLORATORY DATA ANALYSIS
+# ============================================
+
 try:
 # task A.1 → Load the dataset
     df = pd.read_csv(csv_file)
@@ -48,6 +52,10 @@ except FileNotFoundError:
 except Exception as e:
     print(f"An error occurred: {e}")
     quit()
+
+# ================================
+#        TASK B — DATA CLEANING
+# ================================
 
 # task B.1 → remove duplicates
 df = df.drop_duplicates().reset_index(drop=True) 
@@ -113,6 +121,7 @@ if "rating" in df.columns:
     plt.xlabel("Rating")
     plt.ylabel("Frequency")
     plt.tight_layout()
+    plt.savefig("plots/movie_ratings_histogram.png")
     plt.show()
 
 else:
@@ -259,6 +268,7 @@ if "rating" in df.columns:
     plt.ylabel("Frequency")
     plt.xticks(range(min(bins), max(bins)))
     plt.tight_layout()
+    plt.savefig("plots/movie_ratings_histogram.png")
     plt.show()
 else:
     print("Skipping rating histogram — 'rating' column not found.")
@@ -282,6 +292,7 @@ if {"movie_title", "rating"}.issubset(df.columns):
     plt.ylabel("Average Rating")
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
+    plt.savefig("plots/movie_average_ratings.png")
     plt.show()
 else:
     print("Skipping bar plot — need both 'movie_title' and 'rating' columns.")
@@ -302,6 +313,7 @@ if "review_date" in df.columns:
         plt.xlabel("Month")
         plt.ylabel("Review Count")
         plt.tight_layout()
+        plt.savefig("plots/reviews_over_time.png")
         plt.show()
     else:
         print("No valid dates in 'review_date' to plot reviews over time.")
@@ -326,6 +338,7 @@ if "category" in df.columns:
         plt.ylabel("Article Count")
         plt.xticks(rotation=45, ha="right")
         plt.tight_layout()
+        plt.savefig("plots/articles_per_category.png")
         plt.show()
     else:
         print("No non-empty values in 'category' to plot.")
@@ -348,6 +361,7 @@ if "publish_date" in df.columns:
         plt.xlabel("Month")
         plt.ylabel("Article Count")
         plt.tight_layout()
+        plt.savefig("plots/articles_per_month.png")
         plt.show()
     else:
         print("No valid dates in 'publish_date' to plot articles per month.")
@@ -363,6 +377,7 @@ if "word_count" in df.columns:
     plt.xlabel("Word Count")
     plt.ylabel("Frequency")
     plt.tight_layout()
+    plt.savefig("plots/article_lengths_histogram.png")
     plt.show()
 else:
     print("Skipping word count histogram — 'word_count' column not found.")
