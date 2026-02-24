@@ -1,0 +1,13 @@
+metric,value
+count_reviews,301.0
+rating_mean,5.495016611295681
+rating_median,6.0
+rating_min,1.0
+rating_max,10.0
+word_count_mean,18.717607973421927
+word_count_std,1.7185683968603798
+word_count_p95,22.0
+sentiment_positive_count,121.0
+sentiment_neutral_count,94.0
+sentiment_negative_count,86.0
+unique_movies,10.0
