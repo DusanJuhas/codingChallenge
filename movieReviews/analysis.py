@@ -1,8 +1,10 @@
 """A beginner‑friendly Python project designed to verify fundamental data‑analysis skills"""
 
 import sys
+from collections import Counter
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 # csv_file is the path to the CSV file containing the film reviews dataset
 CVS_FILE = "data/original.csv"
@@ -393,6 +395,61 @@ else:
     print("Skipping word count histogram — 'word_count' column not found.")
 
 # ================================
+#        TASK F — OPTIONAL ENHANCEMENTS
+# ================================
+print("\n=== TASK F: OPTIONAL ENHANCEMENTS ===")
+
+# 1. Word count
+texts = df["review_text"].fillna("").to_numpy()
+df["word_count"] = np.array([len(t.split()) for t in texts])
+
+print("=== Word Count Added ===")
+print(df[["review_text", "word_count"]].head(), "\n")
+
+
+# 2. Top keywords
+texts_lower = df["review_text"].fillna("").str.lower().to_numpy()
+stopwords = {"the", "and", "a", "to", "of", "in", "is", "it"}
+
+all_words = []
+for txt in texts_lower:
+    all_words.extend([w for w in txt.split() if w not in stopwords])
+
+keyword_counts = Counter(all_words)
+top_keywords = keyword_counts.most_common(10)
+
+print("=== Top 10 Keywords ===")
+for word, count in top_keywords:
+    print(f"{word}: {count}")
+print()
+
+
+# 3. Detect long & short reviews
+counts = df["word_count"].to_numpy()
+mean = np.mean(counts)
+std = np.std(counts)
+
+df["is_long"] = counts > (mean + 2 * std)
+df["is_short"] = counts < (mean - 2 * std)
+
+print("=== Long Reviews Detected ===")
+print(df[df["is_long"]].head(), "\n")
+
+print("=== Short Reviews Detected ===")
+print(df[df["is_short"]].head(), "\n")
+
+
+# 4. Sentiment proxy
+ratings = df["rating"].to_numpy()
+df["sentiment"] = np.where(
+    ratings >= 7, "positive",
+    np.where(ratings >= 4, "neutral", "negative")
+)
+
+print("=== Sentiment Proxy Added ===")
+print(df[["rating", "sentiment"]].head())
+
+# ================================
 #        TASK G — Results Export
 # ================================
 
@@ -401,3 +458,41 @@ OUTPUT_FILE = "data\\cleaned_data.csv"
 print(df)
 df.to_csv(OUTPUT_FILE, index=False)
 print(f"Enhanced dataset exported to: {OUTPUT_FILE}")
+
+# G.2 Save results table → summary.csv
+# --- Build summary table (key metrics) ---
+summary_rows = []
+
+# Basic rating stats
+ratings = df["rating"].to_numpy()
+summary_rows.extend([
+    {"metric": "count_reviews", "value": int(np.size(ratings))},
+    {"metric": "rating_mean", "value": float(np.mean(ratings)) if ratings.size else None},
+    {"metric": "rating_median", "value": float(np.median(ratings)) if ratings.size else None},
+    {"metric": "rating_min", "value": float(np.min(ratings)) if ratings.size else None},
+    {"metric": "rating_max", "value": float(np.max(ratings)) if ratings.size else None},
+])
+
+# Optional: word count stats if available
+if "word_count" in df.columns:
+    wc = df["word_count"].to_numpy()
+    summary_rows.extend([
+        {"metric": "word_count_mean", "value": float(np.mean(wc)) if wc.size else None},
+        {"metric": "word_count_std", "value": float(np.std(wc)) if wc.size else None},
+        {"metric": "word_count_p95", "value": float(np.percentile(wc, 95)) if wc.size else None},
+    ])
+
+# Optional: sentiment distribution if available
+if "sentiment" in df.columns:
+    sentiment_counts = df["sentiment"].value_counts(dropna=False)
+    for label, cnt in sentiment_counts.items():
+        summary_rows.append({"metric": f"sentiment_{label}_count", "value": int(cnt)})
+
+# Optional: number of unique movies
+if "movie_title" in df.columns:
+    summary_rows.append({"metric": "unique_movies", "value": int(df["movie_title"].nunique())})
+
+# Create a tidy summary table and save as CSV
+summary_df = pd.DataFrame(summary_rows)
+summary_df.to_csv("data/summary.csv", index=False)
+print("Saved: data/summary.csv")
