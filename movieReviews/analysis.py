@@ -27,10 +27,12 @@ def DuplicateRemover(DataFrame):
         Output
             DataFrame, ktery byl upraven
     """
+    # @todo conside differentiation of input and output DataFrame names to make it clearer
     DataFrame = DataFrame.copy() #Bezpecnejsi, aby se neupravoval puvodni DataFrame, ale jen kopie
     if(DataFrame.duplicated().sum()) > 0: #Overeni ze existuji duplicitni radky
         print("\nNa techto radcich je duplicita")
         print(DataFrame[DataFrame.duplicated()])
+    # @todo consider moving input outside of this function, to make it more reusable and testable
         if(input("Chces smazat duplicitni radky? y/n: ") == "y"):
             DataFrame = DataFrame.drop_duplicates() #smazani
             print("Duplicita odstranena")
@@ -58,6 +60,8 @@ def MissingDataHandler(DataFrame):
         print("1 - smazat radky s chybejicimi daty")
         print("2 - doplnit na defaultni hodnoty")
         chose = int(input("Zadej volbu jak data opravit: "))
+        # @todo consider moving input outside of this function, to make it more reusable and testable
+        # @todo consider addiing addtional function parameter choose 
         if(chose == 1): #smazani radku s chybejicimi daty
             #DataFrame = DataFrame.dropna() #smaze vsechny radky kde neco chybi 
             #!!!! TOTO MI NEFUNGUJE, smaze to cely DataFrame a neprisel jsem na to proc, udajne to je tim, ze tam jsou skryte NaN hodnoty
@@ -68,6 +72,7 @@ def MissingDataHandler(DataFrame):
             print("Data smazana")
         elif(chose == 2): #doplneni na defaultni hodnoty
             #toto projde kazdy sloupecek a doplni tam defaultni hodnotu, pokud tam neco chybi, ale jen kdyz tam neco chybi!
+            # @todo consider getting rid off magic values and moving them to constants, to make it more maintainable and readable
             DataFrame["movie_title"] = DataFrame["movie_title"].fillna("Unknown")
             DataFrame["review_text"] = DataFrame["review_text"].fillna("No review")
             DataFrame["rating"] = DataFrame["rating"].fillna(0)
@@ -109,6 +114,7 @@ def BasicStatisticAnalysis(DataFrame):
         Output
           none
     """
+    #@todo better meaningful comment
     #Zobrazeni zakladnich statistik pro sloupecek rating
     grouped = DataFrame.groupby("movie_title")["rating"] #toto jen informuje podle ceho se grupuje a co nas bude zajimat, pak to nemusim vsude psat
 
@@ -141,16 +147,16 @@ def BasicStatisticAnalysis(DataFrame):
     #Pocet hodnoceni pro kazdou kategorii
     print("\nPocet review pro kazdou kategorii")
     counts = DataFrame.groupby("category").size().reset_index(name="count") #secte kategorie, chci data frame = popsane hlavicky sloupecku
-    print(counts.to_string(index=False)) #do vypisu ale nechi videt index
+    print(counts.to_string(index=False)) #do vypisu ale nechci videt index
     #Pocet hodnoceni od kazdeho autora
     print("\nPocet review od kazdeho autora")
     counts = DataFrame.groupby("author").size().reset_index(name="count") #secte autory, chci data frame = popsane hlavicky sloupecku
-    print(counts.to_string(index=False)) #do vypisu ale nechi videt index
+    print(counts.to_string(index=False)) #do vypisu ale nechci videt index
     #Nejcastejsi den kdy se publikovalo
     print("\nDen kdy bylo nejvice review")
     counts = DataFrame.groupby("review_date").size().reset_index(name="count") #secte kdz se delalo review, chci data frame = popsane hlavicky sloupecku
     top_day = counts.sort_values(by="count", ascending=False).head(1) #seradi podle count a vezme jen ten nejvyssi
-    print(top_day.to_string(index=False)) #do vypisu ale nechi videt index
+    print(top_day.to_string(index=False)) #do vypisu ale nechci videt index
 
     #Summary statistics for numeric columns (e.g., views)
     #TODO
