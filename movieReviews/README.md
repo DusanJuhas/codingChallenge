@@ -1,196 +1,125 @@
-# 📊 Mini Project: Data Analysis from a CSV Dataset
+README – Movie Reviews Data Analysis
 
-A beginner‑friendly Python project designed to verify fundamental data‑analysis skills using **Pandas**, **NumPy**, and **Matplotlib**.  
-This project walks through loading, cleaning, exploring, analyzing, and visualizing data from a CSV dataset.
+Purpose of the Project
+Tento projekt slouží k čištění, zpracování a analýze datasetu filmových recenzí uloženého v CSV souboru. Skript provádí kompletní datový pipeline:
+- načtení dat,
+- odstranění chybějících hodnot nebo jejich nastavení na defaultní,
+- odstranění duplicit,
+- čištění textových polí,
+- převod datových typů,
+- základní statistickou analýzu,
+- filtrování a seskupování dat,
+- vizualizace výsledků,
+- uložení vyčištěného datasetu.
 
----
+Cílem je získat přehled o kvalitě dat, odhalit trendy v recenzích a vytvořit vizuální výstupy pro další analýzu.
 
-## 📘 Purpose of the Project
+Dataset Source
+Projekt očekává vstupní soubor:
+data/original.csv
 
-The goal of this mini‑project is to practice essential data‑analysis concepts using real‑world style data.  
-By completing it, you will demonstrate your ability to:
+Dataset obsahuje typicky následující sloupce:
+movie_title
+review_text
+rating
+review_date
+publish_date
+reviewer
+style
+genre
+review_length
+word_count
+sentiment_score
+would_recommend
+category
+author
 
-- Load and inspect CSV data  
-- Clean and preprocess messy datasets  
-- Perform descriptive statistics  
-- Apply filtering, grouping, and sorting  
-- Create data visualizations  
-- Extract meaningful insights  
-- Export processed data and results to files  
-- Structure a small but complete analytical project  
+Skript automaticky kontroluje chybějící hodnoty, nekonzistence a datové typy.
 
----
+Steps Performed
 
-## 📂 Dataset Description
+1. Initial Data Overview
+Funkce DataOverview vypíše:
+- prvních 10 řádků,
+- počet řádků a sloupců,
+- datové typy jednotlivých sloupců.
 
-You may use **any CSV dataset**, but this project assumes a **Movie Reviews Dataset** including columns like:
+2. Missing Data Handling
+Funkce MissingDataHandler:
+- identifikuje řádky s chybějícími hodnotami,
+- umožňuje buď smazat řádky s chybějícími daty, nebo doplnit defaultní hodnoty.
 
-- `review_id`  
-- `movie_title`  
-- `review_text`  
-- `rating` (e.g., 1–5 or 1–10)  
-- `review_date`  
-- `reviewer`  
+3. Duplicate Removal
+Funkce DuplicateRemover:
+- detekuje duplicitní řádky,
+- umožňuje jejich odstranění.
 
-If your dataset differs, feel free to adapt the steps accordingly.
+4. Whitespace Cleaning
+Funkce WhiteSpaceRemover:
+- odstraňuje bílé znaky na začátku a konci textových polí.
 
----
+5. Date Conversion
+Skript převádí sloupce review_date a publish_date na datetime typ.
 
-## 🧪 Project Steps
+6. Statistical Analysis
+Funkce BasicStatisticAnalysis:
+- počítá průměr, medián, minimum, maximum a počet recenzí pro každý film,
+- vytváří histogram hodnocení (1–10),
+- počítá počet recenzí podle kategorie, autora a data publikace.
 
-### **1. Load & Inspect Data**
-- Load using `pandas.read_csv()`
-- Display:
-  - First 10 rows  
-  - Shape of the dataset  
-  - Column names  
-  - Data types via `df.info()`  
-- Identify:
-  - Missing values  
-  - Duplicate rows  
+7. Filtering & Grouping
+Funkce FilteringGrouping:
+- vypisuje filmy s ratingem 8 a více,
+- určuje 5 nejčastěji recenzovaných filmů,
+- počítá počet recenzí v kategorii Tech,
+- hledá nejaktivnějšího autora,
+- počítá počet recenzí za jednotlivé měsíce.
 
----
+8. Data Visualization
+Funkce DataVisualization generuje grafy:
+- průměrné hodnocení filmů (bar plot),
+- počet recenzí v čase (line plot),
+- počet recenzí podle kategorií (bar plot),
+- počet recenzí měsíčně (line plot),
+- histogram délky recenze.
 
-### **2. Data Cleaning**
-Operations include:
+Grafy se ukládají do složky:
+plots/
 
-- Removing duplicate rows  
-- Filling missing text fields with empty strings  
-- Converting dates using `pd.to_datetime()`  
-- Trimming whitespace in text fields  
-- Ensuring numeric fields (e.g., rating) have correct data types  
+9. Saving Cleaned Data
+Vyčištěný dataset se uloží jako:
+data/cleaned_data.csv
 
----
+Sample Insights
+Z datasetu lze získat například:
+- které filmy mají nejvyšší průměrné hodnocení,
+- které dny mají nejvíce publikovaných recenzí,
+- jaké kategorie jsou nejčastěji recenzované,
+- kdo je nejaktivnější recenzent,
+- jak se počet recenzí mění v čase,
+- jak dlouhé jsou recenze a jak se liší mezi kategoriemi.
 
-### **3. Basic Statistical Analysis**
+How to Run the Script
 
-#### **Movie Review Statistics**
-- Mean, median, min, max of ratings  
-- Number of reviews per movie  
-- Rating distribution  
+1. Install dependencies
+Projekt používá:
+pandas
+matplotlib
 
-#### **Optional: News Dataset Metrics**
-- Articles per category  
-- Articles per author  
-- Most common publish day  
-- Descriptive statistics for numeric columns  
+Instalace:
+pip install pandas matplotlib
 
----
-
-### **4. Filtering & Grouping**
-
-Examples implemented:
-
-#### **For Movie Reviews**
-- Reviews with rating ≥ 8  
-- Top 5 most‑reviewed movies  
-- Average rating per movie  
-
-#### **For News Data (if applicable)**
-- Technology articles  
-- Most active author  
-- Monthly article counts  
-
----
-
-### **5. Data Visualization (Matplotlib)**
-
-This project generates the following plots:
-
-#### **Movie Reviews**
-- Histogram → rating distribution  
-- Bar chart → average rating per movie  
-- Line plot → number of reviews over time  
-
-#### **News Dataset (optional)**
-- Articles per category  
-- Articles per month  
-- Histogram of article word counts  
-
-All plots are saved as PNG files inside the `plots/` folder.
-
----
-
-### **6. Optional Advanced Features**
-For learners wanting to explore more:
-
-- Word count column for each review  
-- Extracting simple keywords  
-- Detecting long or short reviews  
-- Basic sentiment proxy based on rating threshold  
-
----
-
-### **7. Exporting Results**
-The script outputs:
-
-- `cleaned_data.csv` → cleaned dataset  
-- `summary.csv` → summary statistics or grouped results  
-- PNG files of all generated plots  
-
----
-
-## 📁 Expected Folder Structure
-
-```
+2. Prepare folder structure
 project/
-│── data/
-│    └── original.csv
-│    └── cleaned_data.csv
-│    └── summary.csv
-│
-│── plots/
-│    └── rating_histogram.png
-│    └── reviews_over_time.png
-│
-│── analysis.py
-│── README.md
-```
+  data/
+    original.csv
+  plots/
+  script.py
 
----
+Složka plots musí existovat:
+mkdir plots
 
-## 🧠 Sample Insights (Example)
+3. Run the script
+python script.py
 
-Your results may vary, but typical insights include:
-
-- **Highest‑rated movie:** *Inception*  
-- **Most‑reviewed movie:** *The Dark Knight*  
-- **Average rating across dataset:** 7.8  
-- **Rating distribution:** Most users cluster around 7–9  
-- **Review activity trend:** Steady increase from 2019–2024  
-
----
-
-## ▶️ How to Run the Script
-
-### **1. Install dependencies**
-
-```bash
-pip install pandas numpy matplotlib
-```
-
-### **2. Run the analysis**
-
-```bash
-python analysis.py
-```
-
-### **3. View outputs**
-- Cleaned CSV: `data/cleaned_data.csv`
-- Summary statistics: `data/summary.csv`
-- Plots: `plots/*.png`  
-
----
-
-## 🚀 What This Project Demonstrates
-
-By completing this project, you show proficiency in:
-
-- Loading, cleaning, and transforming CSV data  
-- Working with **Pandas** DataFrames  
-- Doing statistical analysis  
-- Creating visualizations with **Matplotlib**  
-- Structuring a mini data‑analysis pipeline  
-- Exporting cleaned data and insights  
-
----
+Skript načte data, provede čištění, vytvoří grafy a uloží vyčištěný dataset.

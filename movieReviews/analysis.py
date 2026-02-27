@@ -1,498 +1,309 @@
-"""A beginner‑friendly Python project designed to verify fundamental data‑analysis skills"""
-
-import sys
-from collections import Counter
 import pandas as pd
+# import numpy as np
 import matplotlib.pyplot as plt
-import numpy as np
-
-# csv_file is the path to the CSV file containing the film reviews dataset
-CVS_FILE = "data/original.csv"
-
-# row_count is the number of rows to display when showing the first few rows of the dataset
-ROW_COUNT = 10
-
-# Set to False to skip showing plots (useful for non-interactive environments)
-SHOW_PLOTS = False
-
-# ============================================
-#        TASK A — EXPLORATORY DATA ANALYSIS
-# ============================================
-
-try:
-# task A.1 → Load the dataset
-    df = pd.read_csv(CVS_FILE)
-    print(f"First {ROW_COUNT} rows of the dataset:\n")
-# task A.2.a → Display first 10 rows
-    print(df.head(ROW_COUNT))
-# task A.2.b → Display the shape of the dataset
-    print(df.shape)
-# task A.2.c → Display the column names
-    print(df.columns)
-# task A.2.d → Display the data types by using the info() method
-    print(df.info())
-
-# task A.3.a → Display Missing values
-    print("\nMissing values per column (count):")
-    missing_counts = df.isna().sum()
-    print(missing_counts)
-
-    print("\nMissing values per column (percentage):")
-    missing_pct = (missing_counts / len(df) * 100).round(2)
-    print(missing_pct.astype(str) + " %")
-
-# Rows that have ANY missing values
-    rows_with_missing = df[df.isna().any(axis=1)]
-    print(f"\nTotal rows with any missing value: {len(rows_with_missing)}")
-
-    if len(rows_with_missing) > 0:
-        print(f"\nShowing up to the rows with missing values: \n{rows_with_missing}")
-
-# task A.3.b → Display Duplicated values
-    duplicated_rows = df[df.duplicated()]
-    print(f"\nTotal duplicated rows: {len(duplicated_rows)}")
-    if len(duplicated_rows) > 0:
-        print(f"\nShowing up to the duplicated rows: \n{duplicated_rows}")
-
-except FileNotFoundError:
-    print(f"Error: File not found at path '{CVS_FILE}'.")
-    sys.exit(1)
-except pd.errors.ParserError as e:
-    print(f"Error parsing CSV file: {e}")
-    sys.exit(1)
-
-# ================================
-#        TASK B — DATA CLEANING
-# ================================
-
-# task B.1 → remove duplicates
-df = df.drop_duplicates().reset_index(drop=True)
-print(f"\n=== Shape after duplicate removal: {df.shape} ===")
-
-# task B.2 → handle missing values by filling with empty string
-# empty_string is a variable to be used to fill missing values in the dataset
-EMPTY_STRING = ""
-df = df.fillna(EMPTY_STRING)
-print(f"\nMissing values FILLED with: '{EMPTY_STRING}'")
-
-# task B.3 → convert date columns to datetime
-# datafield name for date in the dataset
-DATE_COLUMN = "review_date"
-df[DATE_COLUMN] = pd.to_datetime(df[DATE_COLUMN], errors="coerce")
-print(f"Converted '{DATE_COLUMN}' to datetime.")
-
-# task B.4 → Trim whitespace in text fields
-# a list of column names that contain text data and may require trimming and normalization
-text_columns = ["movie_title", "review_text", "reviewer"]
-for col in text_columns:
-    df[col] = df[col].str.strip()
-    df[col] = df[col].str.lower() # Normalize text to lowercase
-    print(f"Text normalized in column '{col}'.")
-
-# task B.5 → Convert numeric columns to proper dtype
-numeric_columns = ["rating"]  # Example numeric column
-for col in numeric_columns:
-    df[col] = pd.to_numeric(df[col], errors="coerce")
-    print(f"Converted '{col}' to numeric dtype.")
-
-# ================================
-#        TASK C — STATISTICS
-# ================================
-
-print("\n=== TASK C: BASIC STATISTICAL ANALYSIS ===")
-
-# -------------------------------------------
-# C.1 — MOVIE REVIEWS STATISTICS
-# -------------------------------------------
-
-print("\n--- C.1 MOVIE REVIEW STATISTICS ---")
-
-if "rating" in df.columns:
-
-    # Mean, median, min, max rating
-    print("\nRating Statistics:")
-    print(f"Mean rating:  {df['rating'].mean():.2f}")
-    print(f"Median rating:{df['rating'].median():.2f}")
-    print(f"Min rating:   {df['rating'].min()}")
-    print(f"Max rating:   {df['rating'].max()}")
-
-    # Count of reviews per movie
-    print("\nReviews per Movie:")
-    review_counts = df["movie_title"].value_counts()
-    print(review_counts)
-
-    # Distribution of ratings - histogram
-
-    plt.figure(figsize=(8, 5))
-    plt.hist(df["rating"], bins=10, edgecolor="black")
-    plt.title("Distribution of Movie Ratings")
-    plt.xlabel("Rating")
-    plt.ylabel("Frequency")
-    plt.tight_layout()
-    plt.savefig("plots/movie_ratings_histogram.png")
-    if SHOW_PLOTS:
-        plt.show()
-
-else:
-    print("No movie review fields found.")
-
-
-# -------------------------------------------
-# C.2 — NEWS STATISTICS (conditional)
-# -------------------------------------------
-
-print("\n--- C.2 NEWS STATISTICS (IF AVAILABLE) ---")
-
-has_news = any(col in df.columns for col in ["category", "reviewer", "publish_date", "views"])
-
-if not has_news:
-    print("No news-related fields found in dataset.")
-else:
-    # Count of articles per category
-    if "category" in df.columns:
-        print("\nArticles per Category:")
-        print(df["category"].value_counts())
-
-    # Articles per reviewer
-    if "reviewer" in df.columns:
-        print("\nArticles per Reviewer:")
-        print(df["reviewer"].value_counts())
-
-    # Most frequent publish day
-    if "publish_date" in df.columns:
-        df["publish_date"] = pd.to_datetime(df["publish_date"], errors="coerce")
-        df["publish_day"] = df["publish_date"].dt.day_name()
-        print("\nMost Frequent Publish Day:")
-        print(df["publish_day"].value_counts().head(1))
-
-    # Summary stats for numeric columns
-    if "views" in df.columns:
-        print("\nSummary Statistics for Views:")
-        print(df["views"].describe())
-
-# ================================
-#        TASK D — FILTERING & GROUPING
-# ================================
-
-print("\n=== TASK D: FILTERING & GROUPING ===")
-
-# -------------------------------------------
-# D.1 — MOVIE REVIEW FILTERING & GROUPING
-# -------------------------------------------
-
-print("\n--- D.1 MOVIE REVIEWS ---")
-
-# 1. Show reviews with rating ≥ 8
-if "rating" in df.columns:
-    high_ratings = df[df["rating"] >= 8]
-    print("\nReviews with Rating ≥ 8:")
-    print(high_ratings[["movie_title", "rating", "review_text", "reviewer"]])
-else:
-    print("Rating column not found — skipping this section.")
-
-# 2. Top 5 most-reviewed movies
-if "movie_title" in df.columns:
-    print("\nTop 5 Most-Reviewed Movies:")
-    top_movies = df["movie_title"].value_counts().head(5)
-    print(top_movies)
-else:
-    print("movie_title column not found — skipping.")
-
-# 3. Average rating per movie
-if "rating" in df.columns and "movie_title" in df.columns:
-    print("\nAverage Rating per Movie:")
-    avg_rating = df.groupby("movie_title")["rating"].mean().sort_values(ascending=False)
-    print(avg_rating)
-else:
-    print("Missing columns for average rating calculation.")
-
-
-# -------------------------------------------
-# D.2 — NEWS FILTERING & GROUPING
-# -------------------------------------------
-
-print("\n--- D.2 NEWS ARTICLES ---")
-
-# Check if news data is present
-news_available = any(col in df.columns for col in ["category", "author", "publish_date"])
-
-if not news_available:
-    print("No news-related fields available — skipping news analysis.")
-else:
-    # 1. Articles in the “Technology” category
-    if "category" in df.columns:
-        tech_articles = df[df["category"].str.lower() == "tech"]
-        print("\nArticles in the 'Technology' Category:")
-        print(tech_articles[["author", "publish_date", "views"]])
-    else:
-        print("category column missing — cannot filter by category.")
-
-    # 2. Most active author
-    if "author" in df.columns:
-        print("\nMost Active Author:")
-        most_active = df["author"].value_counts().head(1)
-        print(most_active)
-    else:
-        print("author column missing — cannot compute most active author.")
-
-    # 3. Number of articles published each month
-    if "publish_date" in df.columns:
-        df["publish_date"] = pd.to_datetime(df["publish_date"], errors="coerce")
-        df["month"] = df["publish_date"].dt.month_name()
-
-        print("\nArticles Published Per Month:")
-        month_counts = df["month"].value_counts()
-        print(month_counts)
-    else:
-        print("publish_date column missing — cannot compute monthly article output.")
-
-# ================================
-#        TASK E — DATA VISUALIZATION (Matplotlib)
-# ================================
-print("\n=== TASK E: DATA VISUALIZATION (Matplotlib) ===")
-
-# Ensure dates are datetime if present
-if "review_date" in df.columns:
-    df["review_date"] = pd.to_datetime(df["review_date"], errors="coerce")
-if "publish_date" in df.columns:
-    df["publish_date"] = pd.to_datetime(df["publish_date"], errors="coerce")
-
-# -------------------------------------------
-# E.1 — MOVIE REVIEWS
-# -------------------------------------------
-print("\n--- E.1 MOVIE REVIEWS ---")
-
-# 1) Histogram: rating distribution
-if "rating" in df.columns:
-    plt.figure(figsize=(8, 5))
-    # Use integer bins 0..10 (inclusive edges)
-    bins = range(int(df["rating"].min()) if pd.notna(df["rating"].min()) else 0,
-                 int(df["rating"].max()) + 2 if pd.notna(df["rating"].max()) else 11)
-    plt.hist(df["rating"].dropna(), bins=bins, edgecolor="black")
-    plt.title("Distribution of Movie Ratings")
-    plt.xlabel("Rating")
-    plt.ylabel("Frequency")
-    plt.xticks(range(min(bins), max(bins)))
-    plt.tight_layout()
-    plt.savefig("plots/movie_ratings_histogram.png")
-    if SHOW_PLOTS:
-        plt.show()
-else:
-    print("Skipping rating histogram — 'rating' column not found.")
-
-# 2) Bar plot: average rating per movie
-if {"movie_title", "rating"}.issubset(df.columns):
-    avg_per_movie = (
-        df.groupby("movie_title")["rating"]
-          .mean()
-          .sort_values(ascending=False)
-    )
-
-    # Plot top N for readability
-    TOP_N = 15
-    to_plot = avg_per_movie.head(TOP_N)
-
-    plt.figure(figsize=(10, 6))
-    to_plot.plot(kind="bar", color="#1f77b4", edgecolor="black")
-    plt.title(f"Average Rating per Movie (Top {min(TOP_N, len(to_plot))})")
-    plt.xlabel("Movie")
-    plt.ylabel("Average Rating")
-    plt.xticks(rotation=45, ha="right")
-    plt.tight_layout()
-    plt.savefig("plots/movie_average_ratings.png")
-    if SHOW_PLOTS:
-        plt.show()
-else:
-    print("Skipping bar plot — need both 'movie_title' and 'rating' columns.")
-
-# 3) Line plot: number of reviews over time (monthly)
-if "review_date" in df.columns:
-    reviews_over_time = (
-        df.set_index("review_date")
-          .sort_index()
-          .resample("ME")
-          .size()
-    )
-
-    if not reviews_over_time.empty:
-        plt.figure(figsize=(9, 5))
-        reviews_over_time.plot(marker="o")
-        plt.title("Number of Reviews Over Time (Monthly)")
-        plt.xlabel("Month")
-        plt.ylabel("Review Count")
-        plt.tight_layout()
-        plt.savefig("plots/reviews_over_time.png")
-        if SHOW_PLOTS:
-            plt.show()
-    else:
-        print("No valid dates in 'review_date' to plot reviews over time.")
-else:
-    print("Skipping reviews-over-time plot — 'review_date' not found.")
-
-
-# -------------------------------------------
-# E.2 — NEWS
-# -------------------------------------------
-print("\n--- E.2 NEWS ---")
-
-# 1) Bar chart: articles per category
-if "category" in df.columns:
-    cat_counts = df["category"].dropna().astype(str).str.strip().value_counts()
-
-    if not cat_counts.empty:
-        plt.figure(figsize=(8, 5))
-        cat_counts.plot(kind="bar", color="#2ca02c", edgecolor="black")
-        plt.title("Articles per Category")
-        plt.xlabel("Category")
-        plt.ylabel("Article Count")
-        plt.xticks(rotation=45, ha="right")
-        plt.tight_layout()
-        plt.savefig("plots/articles_per_category.png")
-        if SHOW_PLOTS:
-            plt.show()
-    else:
-        print("No non-empty values in 'category' to plot.")
-else:
-    print("Skipping category bar chart — 'category' column not found.")
-
-# 2) Line plot: articles per month
-if "publish_date" in df.columns:
-    articles_per_month = (
-        df.set_index("publish_date")
-          .sort_index()
-          .resample("ME")
-          .size()
-    )
-
-    if not articles_per_month.empty:
-        plt.figure(figsize=(9, 5))
-        articles_per_month.plot(marker="o", color="#ff7f0e")
-        plt.title("Articles per Month")
-        plt.xlabel("Month")
-        plt.ylabel("Article Count")
-        plt.tight_layout()
-        plt.savefig("plots/articles_per_month.png")
-        if SHOW_PLOTS:
-            plt.show()
-    else:
-        print("No valid dates in 'publish_date' to plot articles per month.")
-else:
-    print("Skipping articles-per-month line plot — 'publish_date' not found.")
-
-# 3) Histogram: article lengths (word count)
-# If your news items are in the same dataframe, we can still use 'word_count' as length proxy.
-if "word_count" in df.columns:
-    plt.figure(figsize=(8, 5))
-    plt.hist(df["word_count"].dropna(), bins=15, edgecolor="black", color="#9467bd")
-    plt.title("Histogram of Article Lengths (Word Count)")
-    plt.xlabel("Word Count")
-    plt.ylabel("Frequency")
-    plt.tight_layout()
-    plt.savefig("plots/article_lengths_histogram.png")
-    if SHOW_PLOTS:
-        plt.show()
-else:
-    print("Skipping word count histogram — 'word_count' column not found.")
-
-# ================================
-#        TASK F — OPTIONAL ENHANCEMENTS
-# ================================
-print("\n=== TASK F: OPTIONAL ENHANCEMENTS ===")
-
-# 1. Word count
-texts = df["review_text"].fillna("").to_numpy()
-df["word_count"] = np.array([len(t.split()) for t in texts])
-
-print("=== Word Count Added ===")
-print(df[["review_text", "word_count"]].head(), "\n")
-
-
-# 2. Top keywords
-texts_lower = df["review_text"].fillna("").str.lower().to_numpy()
-stopwords = {"the", "and", "a", "to", "of", "in", "is", "it"}
-
-all_words = []
-for txt in texts_lower:
-    all_words.extend([w for w in txt.split() if w not in stopwords])
-
-keyword_counts = Counter(all_words)
-top_keywords = keyword_counts.most_common(10)
-
-print("=== Top 10 Keywords ===")
-for word, count in top_keywords:
-    print(f"{word}: {count}")
-print()
-
-
-# 3. Detect long & short reviews
-counts = df["word_count"].to_numpy()
-mean = np.mean(counts)
-std = np.std(counts)
-
-df["is_long"] = counts > (mean + 2 * std)
-df["is_short"] = counts < (mean - 2 * std)
-
-print("=== Long Reviews Detected ===")
-print(df[df["is_long"]].head(), "\n")
-
-print("=== Short Reviews Detected ===")
-print(df[df["is_short"]].head(), "\n")
-
-
-# 4. Sentiment proxy
-ratings = df["rating"].to_numpy()
-df["sentiment"] = np.where(
-    ratings >= 7, "positive",
-    np.where(ratings >= 4, "neutral", "negative")
-)
-
-print("=== Sentiment Proxy Added ===")
-print(df[["rating", "sentiment"]].head())
-
-# ================================
-#        TASK G — Results Export
-# ================================
-
-# G.1 Export the cleaned and enhanced dataset to a new CSV file
-OUTPUT_FILE = "data\\cleaned_data.csv"
-print(df)
-df.to_csv(OUTPUT_FILE, index=False)
-print(f"Enhanced dataset exported to: {OUTPUT_FILE}")
-
-# G.2 Save results table → summary.csv
-# --- Build summary table (key metrics) ---
-summary_rows = []
-
-# Basic rating stats
-ratings = df["rating"].to_numpy()
-summary_rows.extend([
-    {"metric": "count_reviews", "value": int(np.size(ratings))},
-    {"metric": "rating_mean", "value": float(np.mean(ratings)) if ratings.size else None},
-    {"metric": "rating_median", "value": float(np.median(ratings)) if ratings.size else None},
-    {"metric": "rating_min", "value": float(np.min(ratings)) if ratings.size else None},
-    {"metric": "rating_max", "value": float(np.max(ratings)) if ratings.size else None},
-])
-
-# Optional: word count stats if available
-if "word_count" in df.columns:
-    wc = df["word_count"].to_numpy()
-    summary_rows.extend([
-        {"metric": "word_count_mean", "value": float(np.mean(wc)) if wc.size else None},
-        {"metric": "word_count_std", "value": float(np.std(wc)) if wc.size else None},
-        {"metric": "word_count_p95", "value": float(np.percentile(wc, 95)) if wc.size else None},
-    ])
-
-# Optional: sentiment distribution if available
-if "sentiment" in df.columns:
-    sentiment_counts = df["sentiment"].value_counts(dropna=False)
-    for label, cnt in sentiment_counts.items():
-        summary_rows.append({"metric": f"sentiment_{label}_count", "value": int(cnt)})
-
-# Optional: number of unique movies
-if "movie_title" in df.columns:
-    summary_rows.append({"metric": "unique_movies", "value": int(df["movie_title"].nunique())})
-
-# Create a tidy summary table and save as CSV
-summary_df = pd.DataFrame(summary_rows)
-summary_df.to_csv("data/summary.csv", index=False)
-print("Saved: data/summary.csv")
+
+
+def WhiteSpaceRemover(DataFrame):
+    """
+      Funkce pro odstraneni bilych znaku ze stringu ve vsech sloupecich
+        Input:
+            DataFrame: DataFrame, ktery chceme upravit
+        Output
+            DataFrame, ktery byl upraven
+    """
+    DataFrame = DataFrame.copy() #Bezpecnejsi, aby se neupravoval puvodni DataFrame, ale jen kopie
+    DataFrame = DataFrame.apply(lambda col: col.str.strip() if col.dtype == "str" else col)
+    #DataFrame.apply() -> pouzije kazdy sloupec z DataFrame
+    #lambda col: -> anonymni funce ktera pro sloupec col provede nasledujici logiku
+    #col.str.strip() -> odstrani bile znaky z leveho a praveho konce stringu
+    #col.dtype == "str" -> pouzije se jen pokud sloupec je typu string
+    return DataFrame #Navrati upraveneho DataFrame
+
+def DuplicateRemover(DataFrame):
+    """
+      Funkce pro odstraneni duplicitnich radku
+        Input:
+            DataFrame: DataFrame, ktery chceme upravit
+        Output
+            DataFrame, ktery byl upraven
+    """
+    DataFrame = DataFrame.copy() #Bezpecnejsi, aby se neupravoval puvodni DataFrame, ale jen kopie
+    if(DataFrame.duplicated().sum()) > 0: #Overeni ze existuji duplicitni radky
+        print("\nNa techto radcich je duplicita")
+        print(DataFrame[DataFrame.duplicated()])
+        if(input("Chces smazat duplicitni radky? y/n: ") == "y"):
+            DataFrame = DataFrame.drop_duplicates() #smazani
+            print("Duplicita odstranena")
+        else:
+            print("Duplicita zustane zachovana")
+    #else:
+    #  print("Soubor neobsahuje duplicitu, vse OK")
+    return DataFrame #Navrati upraveneho DataFrame
+
+
+def MissingDataHandler(DataFrame):
+    """
+      Funkce pro osetreni chybějících dat
+        Input:
+            DataFrame: DataFrame, ktery chceme upravit
+        Output
+            DataFrame, ktery byl upraven
+    """
+    DataFrame = DataFrame.copy() #Bezpecnejsi, aby se neupravoval puvodni DataFrame, ale jen kopie
+    if(DataFrame.isnull().any().any() == True): #neco, nekde chybi
+        print("Nektera data v souboru chybi\nVypis chybejich:")
+        #print(DataFrame.isnull().sum()) #soucet chybejich hodnot pro kazde sloupecky zvlast
+        print(DataFrame[DataFrame.isnull().any(axis=1)]) #vypise radky kde neco chybi
+        print("Jak chcete data upravit?")
+        print("1 - smazat radky s chybejicimi daty")
+        print("2 - doplnit na defaultni hodnoty")
+        chose = int(input("Zadej volbu jak data opravit: "))
+        if(chose == 1): #smazani radku s chybejicimi daty
+            #DataFrame = DataFrame.dropna() #smaze vsechny radky kde neco chybi 
+            #!!!! TOTO MI NEFUNGUJE, smaze to cely DataFrame a neprisel jsem na to proc, udajne to je tim, ze tam jsou skryte NaN hodnoty
+    
+            DataFrame = DataFrame.dropna(subset=["movie_title", "review_text", "rating", "review_date"
+                                                 , "reviewer", "style", "genre", "review_length", "word_count"
+                                                 , "sentiment_score", "would_recommend"]) #smaze jen radky, kde neco chybi v techto sloupeccich
+            print("Data smazana")
+        elif(chose == 2): #doplneni na defaultni hodnoty
+            #toto projde kazdy sloupecek a doplni tam defaultni hodnotu, pokud tam neco chybi, ale jen kdyz tam neco chybi!
+            DataFrame["movie_title"] = DataFrame["movie_title"].fillna("Unknown")
+            DataFrame["review_text"] = DataFrame["review_text"].fillna("No review")
+            DataFrame["rating"] = DataFrame["rating"].fillna(0)
+            DataFrame["review_date"] = DataFrame["review_date"].fillna("1900-01-01") #defaultni datum, ktery se pouzije, pokud tam neco chybi
+            DataFrame["reviewer"] = DataFrame["reviewer"].fillna("Unknown")
+            DataFrame["style"] = DataFrame["style"].fillna("")
+            DataFrame["genre"] = DataFrame["genre"].fillna("")
+            DataFrame["review_length"] = DataFrame["review_length"].fillna(0)
+            DataFrame["word_count"] = DataFrame["word_count"].fillna(0)
+            DataFrame["sentiment_score"] = DataFrame["sentiment_score"].fillna(0)
+            DataFrame["would_recommend"] = DataFrame["would_recommend"].fillna(False)
+            print("Data doplnena na defaultni hodnoty")
+    #else:
+    #  print("Soubor neobsahuje chybejici data, vse OK")
+    return DataFrame #Navrati upraveneho DataFrame
+
+
+def DataOverview(DataFrame):
+    """
+      Funkce pro prvni vizualizaci dat v CSV
+        Input:
+          DataFrame: DataFrame, ktery chceme vizualizovat
+        Output
+          none
+    """
+    print("Prvnich 10 radku souboru")
+    print(DataFrame.head(10)) #vypise prvnich 10 radku
+    rows, columns = DataFrame.shape #shape je tvar datasetu = proste kolik ma DataFrame radku s sloupcu
+    print(f"\nSoubor ma {rows} radku\nSoubor ma {columns} sloupecku")
+    print("\nHlavicka souboru a datove typy jednotlivych sloupcu:")
+    DataFrame.info() #toto vypise hlavicku a datove typy jednotlivych sloupcu, takze i s indexem
+    #info() nepotrebuje print, samo se vypise
+
+def BasicStatisticAnalysis(DataFrame):
+    """
+      Funkce pro statistickou analyzu dat
+        Input:
+          DataFrame: DataFrame, ktery chceme analyzovat
+        Output
+          none
+    """
+    #Zobrazeni zakladnich statistik pro sloupecek rating
+    grouped = DataFrame.groupby("movie_title")["rating"] #toto jen informuje podle ceho se grupuje a co nas bude zajimat, pak to nemusim vsude psat
+
+    MovieFrame = pd.DataFrame({
+        "mean": grouped.mean().round(2),
+        "median": grouped.median().round(2),
+        "min": grouped.min().round(2),
+        "max": grouped.max().round(2),
+        "reviews": grouped.size()
+    }).reset_index()
+    print("\nHodnoceni filmu dle ratingu")
+    print(MovieFrame.to_string(index=False)) #vypise hodnoceni
+
+    # Vytvoreni histogramu pro sloupecek rating
+    all_ratings = pd.Series(range(1, 11), name="rating") #toto vytvori serii 1-10 a pouzije se jako osa X, pokud by nejaky rating chybel, tak na ose bude s kodnotou 0
+    counts = DataFrame["rating"].value_counts().reindex(all_ratings, fill_value=0)
+    #DataFrame["rating"].value_counts() --> toto spocita kolikrat se kazda hodnota vyskytuje, ale sezadi to dle cetnosti
+    #.reindex(all_ratings, fill_value=0) --> toto presklada vysledky dle indexu 1-10 a pokud neco chybi tak zada 0
+
+    plt.figure(figsize=(8,5)) #graf bude 8 palcu siroky a 5 palcu vysoky
+    counts.plot(kind="bar", color="green") #toto vytvori bar graph, kde osa X bude rating a osa Y bude pocet vyskytu, barva bude zelena
+
+    plt.xlabel("Rating filmu")
+    plt.ylabel("Počet výskytů")
+    plt.title("Histogram hodnocení (1-10)")
+    plt.xticks(rotation=0)
+    plt.savefig("plots/rating_histogram.png", dpi=300, bbox_inches="tight") #bbox_inches="tight" zajisti, ze se graf neodreze
+    #plt.show() #graf jen ulozim, videt ho nechci
+
+    #Pocet hodnoceni pro kazdou kategorii
+    print("\nPocet review pro kazdou kategorii")
+    counts = DataFrame.groupby("category").size().reset_index(name="count") #secte kategorie, chci data frame = popsane hlavicky sloupecku
+    print(counts.to_string(index=False)) #do vypisu ale nechi videt index
+    #Pocet hodnoceni od kazdeho autora
+    print("\nPocet review od kazdeho autora")
+    counts = DataFrame.groupby("author").size().reset_index(name="count") #secte autory, chci data frame = popsane hlavicky sloupecku
+    print(counts.to_string(index=False)) #do vypisu ale nechi videt index
+    #Nejcastejsi den kdy se publikovalo
+    print("\nDen kdy bylo nejvice review")
+    counts = DataFrame.groupby("review_date").size().reset_index(name="count") #secte kdz se delalo review, chci data frame = popsane hlavicky sloupecku
+    top_day = counts.sort_values(by="count", ascending=False).head(1) #seradi podle count a vezme jen ten nejvyssi
+    print(top_day.to_string(index=False)) #do vypisu ale nechi videt index
+
+    #Summary statistics for numeric columns (e.g., views)
+    #TODO
+    #Co se tady ocekava?
+
+
+def FilteringGrouping(DataFrame):
+    """
+      Funkce pro filtrovani a slucovani dat
+        Input:
+          DataFrame: DataFrame, ktery chceme analyzovat
+        Output:
+          None
+    """
+    #Seznam filmu s hodnocenim 8 a vice
+    unique_movies = (
+        DataFrame.loc[DataFrame["rating"] >= 8, "movie_title"] #.loc musi byt pokud chci filtrovat a pak vybrat jeste konkretni sloupec
+        .drop_duplicates() #odstrani duplicitni nazvy filmu
+        .reset_index(drop=True)
+        .sort_values() #seradi nazvy filmu podle abecedy
+         )
+    print("\nFilmy s hodnocenim 8 a vice:")
+    print(unique_movies.to_string(index=False))
+
+    #5 nejvice recenzovanych filmu
+    print("\n5 nejvice recenzovanych filmu")
+    counts = DataFrame.groupby("movie_title").size().reset_index(name="count") #secte filmy, chci data frame = popsane hlavicky sloupecku
+    movie_review = counts.sort_values(by="count", ascending=False).head(5) #seradi podle count a vezme jen ten nejvyssi
+    print(movie_review.to_string(index=False)) #do vypisu ale nechi videt index
+
+    #pocet review v kategorii Technology
+    print("\nPocet review v kategorii Technology (Tech)")
+    counts = (DataFrame["category"] == "Tech").sum()
+    print(counts) #do vypisu ale nechi videt index
+    
+    #nejvice aktivni autor review
+    print("\nNejvice aktivni autor review")
+    counts = DataFrame.groupby("reviewer").size().reset_index(name="count") #secte pocet review
+    reviewer = counts.sort_values(by="count", ascending=False).head(1) #seradi podle count a vezme jen ten nejvyssi
+    print(reviewer.to_string(index=False)) #do vypisu ale nechi videt index
+
+    #pocet clanku publikovanych kazdy mesic
+    DataFrame["review_month"] = DataFrame["review_date"].dt.to_period("M") #sloupecek si prejmenuji na review_month
+    review_month = DataFrame.groupby("review_month").size().reset_index(name="count")
+    print(f"\nPocet review v kazdem mesici: \n{review_month.to_string(index=False)}") #do vypisu ale nechi videt index
+
+
+def DataVisualization(DataFrame):
+    """
+    Visualizace dat
+      Input:
+        DataFrame: DataFrame, ktery chceme analyzovat
+      Output:
+        None
+    """
+    #Rating histogram --> udelano uz v BasicStatisticAnalysis
+    
+    #prumerne hodnoceni kazdeho filmu - bar plot
+    MovieMeanRating = DataFrame.groupby("movie_title")["rating"].mean()
+
+    plt.figure(figsize=(10,5)) #graf bude 8 palcu siroky a 5 palcu vysoky
+    MovieMeanRating.plot(kind="bar", color="green") #toto vytvori bar graph, kde osa X bude rating a osa Y bude pocet vyskytu, barva bude zelena
+
+    plt.xlabel("Jmeno filmu")
+    plt.ylabel("Prumerny rating")
+    plt.title("Prumerne hodnoceni kazdeho filmu")
+    plt.xticks(rotation=90)
+    plt.savefig("plots/average_move_rating.png", dpi=300, bbox_inches="tight") #bbox_inches="tight" zajisti, ze se graf neodreze
+    #plt.show() #graf jen ulozim, videt ho nechci
+
+    #pocer review v case - line plot
+    #prumerne hodnoceni kazdeho filmu - bar plot
+    ReviewsPerDate = DataFrame.groupby("review_date").size() #secte kdy se delalo review
+    plt.figure(figsize=(10,5)) #graf bude 10 palcu siroky a 5 palcu vysoky
+    ReviewsPerDate.plot(kind="line", color="green") #toto vytvori bar graph, kde osa X bude rating a osa Y bude pocet vyskytu, barva bude zelena
+    plt.xlabel("Datum")
+    plt.ylabel("Pocet review")
+    plt.title("Pocet review v case")
+
+    #nastaveni aby osa Y zobrazovala jen cela cisla, protoze pocet review nemuze byt desetina nebo neco podobneho
+    import matplotlib.ticker as mticker
+    plt.gca().yaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+
+    plt.xticks(rotation=0)
+    plt.savefig("plots/reviews_in_time.png", dpi=300, bbox_inches="tight") #bbox_inches="tight" zajisti, ze se graf neodreze
+    #plt.show() #graf jen ulozim, videt ho nechci
+
+    #pocet clanku pro kazdou kategorii - bar plot
+    ReviewsPerCategory = DataFrame.groupby("category").size() #secte kategorie
+    plt.figure(figsize=(8,5)) #graf bude 8 palcu siroky a 5 palcu vysoky
+    ReviewsPerCategory.plot(kind="bar", color="green") #toto vytvori bar graph
+    plt.xlabel("Kategorie")
+    plt.ylabel("Pocet review")
+    plt.title("Pocet review pro kazdou kategorii")
+    plt.xticks(rotation=0) 
+    plt.savefig("plots/reviews_per_category.png", dpi=300, bbox_inches="tight") #bbox_inches="tight" zajisti, ze se graf neodreze
+
+    #pocet clanku mesicne - line plot
+    ReviewsPerMonth = DataFrame.groupby("review_month").size() #secte kdy se delalo review
+    plt.figure(figsize=(10,5)) #graf bude 10 palcu siroky a 5 palcu vysoky
+    ReviewsPerMonth.plot(kind="line", color="green") #toto vytvori
+    plt.xlabel("Mesic")
+    plt.ylabel("Pocet review")
+    plt.title("Pocet review mesicne")
+    plt.xticks(rotation=90)
+    plt.savefig("plots/reviews_per_month.png", dpi=300, bbox_inches="tight") #bbox_inches="tight" zajisti, ze se graf neodreze
+
+    #histogram delky recenze - histogram
+    plt.figure(figsize=(8,5)) #graf bude 8 palcu siroky a 5 palcu vysoky
+    DataFrame["review_length"].plot(kind="hist", bins=20, color="green") #toto vytvori histogram, kde osa X bude delka recenze a osa Y bude pocet vyskytu, barva bude zelena
+    plt.xlabel("Delka recenze") 
+    plt.ylabel("Pocet review") 
+    plt.title("Histogram delky recenze")
+    plt.xticks(rotation=0)
+    plt.savefig("plots/review_length_histogram.png", dpi=300, bbox_inches="tight") #bbox_inches="tight" zajisti, ze se graf neodreze
+
+
+
+# *************************************
+# Hlavni analyza
+# *************************************
+#Nacteni CSV
+DataFrame = pd.read_csv("data/original.csv", sep = ",")
+if DataFrame.columns.isnull().any(): #overeni ze hlavicka neobsahuje prazdne hodnoty
+    print("Některé názvy sloupců chybí!")
+#tady pozor, Dusanovo CSV ma v bunkach taky carky, ale v uvozovkach. Ty se pak neuvazuji jako oddelovac
+
+#Prvni vizualizaci dat v CSV
+DataOverview(DataFrame)
+
+#Overeni a osetreni chybějících dat
+DataFrame = MissingDataHandler(DataFrame) 
+
+#Overeni a odstraneni duplicit
+DataFrame = DuplicateRemover(DataFrame)
+
+#Odstraneni bilych znaku ze stringu ve vsech sloupcich
+DataFrame = WhiteSpaceRemover(DataFrame)
+
+#prevod datumu (sloupecek review_date a publish_date) ze stringu na format datum
+DataFrame["review_date"] = pd.to_datetime(DataFrame["review_date"])
+DataFrame["publish_date"] = pd.to_datetime(DataFrame["publish_date"])
+
+#Zakladni statisticka analyza dat
+BasicStatisticAnalysis(DataFrame)
+
+#Filtering and Grouping
+FilteringGrouping(DataFrame)
+
+#Visualizace dat
+DataVisualization(DataFrame)
+
+
+#Konec, ukladam upravena data
+DataFrame.to_csv("data/cleaned_data.csv", sep=",", index=False)
+print("\nUpravena data byla ulozena do souboru cleaned_data.csv")
