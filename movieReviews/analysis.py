@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 
+# @todo is script_dir necessary? Can we just use relative path to the csv file?
 script_dir = os.path.dirname(os.path.abspath(__file__))                     #find the root directory where the script is located
 original_file_path = script_dir + "\\data\\original_movie_reviews_copy.csv"      #make path for the original csv file
 cleand_file_path = script_dir + "\\data\\cleaned_movie_reviews.csv"
@@ -15,7 +16,7 @@ print("Names of the columns are: ", original_file.columns)
 print("Data types using info(): ")
 print(original_file.info())
 
-
+exit()
 
 #Identify:
 print("Řádky s prázdnýma hodnotama:")
