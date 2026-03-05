@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 
+
 # @todo is script_dir necessary? Can we just use relative path to the csv file?
 script_dir = os.path.dirname(os.path.abspath(__file__))                     #find the root directory where the script is located
 original_file_path = script_dir + "\\data\\original_movie_reviews_copy.csv"      #make path for the original csv file
@@ -10,13 +11,12 @@ original_file = pd.read_csv(original_file_path)
 
 #Display:
 print("This is first 10 rows in the CSV")
+# @todo consider avoiding hardcoding the number of rows to display, maybe use head() method instead
 print(original_file[0:9])
 print("Dataset shape is: ", original_file.shape)
 print("Names of the columns are: ", original_file.columns)
 print("Data types using info(): ")
 print(original_file.info())
-
-exit()
 
 #Identify:
 print("Řádky s prázdnýma hodnotama:")
@@ -42,12 +42,14 @@ original_file.to_csv(cleand_file_path,index = False)
 print(original_file["rating"].mean())
 print(original_file["rating"].median())
 print(original_file["rating"].min())
-print(original_file["rating"].max()) 
+print(original_file["rating"].max())
 
 print(original_file["movie_title"].value_counts())
+# @todo consider fullfilling all missing tasks ;-)
 
 #filtering and grouping
 ratingBiggerEight = original_file[original_file["rating"] >= 8]
+# @todo avoid magic numbers, maybe use a variable to store the threshold value for filtering ratings
 print(ratingBiggerEight)
 topFiveReviewed = original_file["movie_title"].value_counts().head(5)
 print(topFiveReviewed)
@@ -65,3 +67,6 @@ plt.barh(averageRating.index,averageRating.values,  color = "blue",
 plt.subplots_adjust(left=0.25)
 plt.title("Average rating per movie")
 plt.show()
+
+#@todo consider adding more visualizations
+#@todo consider storing the visualizations as image files instead of just showing them, maybe use plt.savefig() method
