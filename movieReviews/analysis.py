@@ -143,7 +143,7 @@ if not os.path.exists('plots'):
 if not os.path.exists('data'):
     os.makedirs('data')
 
-sFileToAnalyse = r'c:\temp\VS\movie_reviews.csv'
+sFileToAnalyse = r'data/original.csv'
 
 
 # A.1 Load the CSV using pandas.read_csv()
