@@ -140,9 +140,48 @@ print("\n##### 5 Data Visualization #####\n")
 print("Rating distribution histogram:\n")
 
 plt.figure(figsize=(6,4))
-plt.hist(df["rating"], bins=10, color="#4f81bd", edgecolor="black")
+plt.hist(df["rating"], bins=10, color="#226ed1", edgecolor="black")
 plt.title("Rating Distribution")
 plt.xlabel("Rating")
 plt.ylabel("Count")
 plt.grid(axis="y", alpha=0.3)
+plt.show()
+
+# Bar chart -> average rating per movie
+print("\nAverage rating per movie bar chart:\n")
+avg_rating = (
+    df.groupby("movie_title")["rating"]
+      .mean()
+      .reset_index(name="average_rating")
+      .sort_values("average_rating", ascending=False)
+)
+
+plt.figure(figsize=(10,5))
+plt.bar(avg_rating["movie_title"], avg_rating["average_rating"], color="#c0504d")
+plt.title("Average Rating per Movie")
+plt.xlabel("Movie")
+plt.ylabel("Average Rating")
+plt.xticks(rotation=45, ha="right")
+plt.tight_layout()
+plt.grid(axis="y", alpha=0.3)
+plt.show()
+
+# Line plot → number of reviews over time
+print("\nNumber of reviews over time line plot:\n")
+reviews_over_time = (
+    df.dropna(subset=["review_date"])
+      .set_index("review_date")
+      .resample("M")          # M = monthly, může být i "D" pro daily
+      .size()
+      .reset_index(name="review_count")
+)
+plt.figure(figsize=(10,4))
+plt.plot(reviews_over_time["review_date"], reviews_over_time["review_count"],
+         marker="o", color="#2a9d8f")
+
+plt.title("Number of Reviews Over Time")
+plt.xlabel("Date")
+plt.ylabel("Number of Reviews")
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
 plt.show()
