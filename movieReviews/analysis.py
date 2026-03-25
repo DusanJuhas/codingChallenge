@@ -1,50 +1,105 @@
-# import c:\temp\VS\Movie_Reviews_Dataset_UTF8.csv 
-
+"""
+Movie Review Analyzer
+---------------------
+This module provides tools for loading, cleaning, analyzing, 
+and visualizing movie review and news datasets.
+It uses pandas for data manipulation and matplotlib for visualization.
+"""
+import os
 import re
 from typing import Counter
 import pandas as pd
 import matplotlib.pyplot as plt
-import os
+
+#set CWD
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # A. Load & Inspect Data
 class MovieReviewAnalyser:
+    """
+    Class for analyzing and cleaning movie review and news datasets.
+    Provides methods for data loading, cleaning, analysis, and feature extraction.
+    """
     def __init__(self, file_path):
+        """
+        Initialize the MovieReviewAnalyser with a CSV file path.
+        Loads the data into a pandas DataFrame.
+        Args:
+            file_path (str): Path to the CSV file.
+        """
         self.data = pd.read_csv(file_path)
-    
+
     def average_rating_by_genre(self):
-        return self.data.groupby('genre')['rating'].mean() #Groups the dataset by genre and calculates the average rating for each genre.
+        """
+        Groups the dataset by genre and calculates the average rating for each genre.
+        Returns:
+            pandas.Series: Average rating for each genre.
+        """
+        return self.data.groupby('genre')['rating'].mean()
 
     def display_first_n_rows(self, n):
+        """
+        Display the first n rows of the dataset.
+        Args:
+            n (int): Number of rows to display.
+        Returns:
+            pandas.DataFrame: First n rows of the dataset.
+        """
         return self.data.head(n)
-    
+
     def remove_duplicate_rows(self):
+        """
+        Remove duplicate rows from the dataset in place.
+        """
         self.data.drop_duplicates(inplace=True)
         print("B.1 Data Cleaning - Remove duplicates Duplicate rows ... removed successfully.")
 
     def handle_missing_values(self):
+        """
+        Fill missing values in the dataset with empty strings.
+        """
         print("B.2 Handling missing values...")
         self.data.fillna('', inplace=True)
 
     def convert_date_columns(self, date_columns):
+        """
+        Convert specified columns to datetime using pandas to_datetime.
+        Args:
+            date_columns (list): List of column names to convert.
+        """
         print("B.3 Data Cleaning - Convert date columns using pd.to_datetime()")
         for col in date_columns:
             if col in self.data.columns:
                 self.data[col] = pd.to_datetime(self.data[col], errors='coerce')
                 print(f"Converted {col}, dtype: {self.data[col].dtype}")
-        else:
-            print(f"Column {col} not found in data!")
-    
+            else:
+                print(f"Column {col} not found in data!")
+
     def trim_whitespace(self, text_columns):
+        """
+        Trim whitespace from specified text columns.
+        Args:
+            text_columns (list): List of column names to trim.
+        """
         print("B.4 Data Cleaning - Trim whitespace in text fields")
         for col in text_columns:
             self.data[col] = self.data[col].str.strip()
-    
+
     def convert_numeric_columns(self, numeric_columns):
+        """
+        Convert specified columns to numeric dtype.
+        Args:
+            numeric_columns (list): List of column names to convert.
+        """
         print("B.5 Data Cleaning - Convert numeric columns to correct dtype")
         for col in numeric_columns:
             self.data[col] = pd.to_numeric(self.data[col], errors='coerce')
 
     def clean_data(self):
+        """
+        Perform all data cleaning steps: remove duplicates, handle missing values,
+        convert date columns, trim whitespace, and convert numeric columns.
+        """
         self.remove_duplicate_rows()
         self.handle_missing_values()
         self.convert_date_columns(['publish_date', 'review_date'])
@@ -52,6 +107,10 @@ class MovieReviewAnalyser:
         self.convert_numeric_columns(['rating', 'review_length', 'word_count', 'sentiment_score', 'views'])
 
     def data_analysis(self):
+        """
+        Perform various data analysis tasks and print results, including statistics,
+        counts, and distributions for movie reviews and news articles.
+        """
         # C.1.1 Data Analysis - Movie reviews: Mean, median, min, max rating
         print("C.1.1 Movie reviews - Rating statistics:")
         print("Mean rating:", self.data['rating'].mean())
@@ -85,38 +144,95 @@ class MovieReviewAnalyser:
         print("C.2.4 News - Summary statistics for all columns of type numeric:")
         numeric_columns = self.data.select_dtypes(include=['number']).columns
         print(self.data[numeric_columns].describe())
-        
 
     def filter_reviews_by_rating(self, threshold):
+        """
+        Filter reviews with rating greater than or equal to the threshold.
+        Args:
+            threshold (float): Minimum rating value.
+        Returns:
+            pandas.DataFrame: Filtered reviews.
+        """
         return self.data[self.data['rating'] >= threshold]
-    
+
     def top_n_most_reviewed_movies(self, n):
+        """
+        Get the top n most reviewed movies.
+        Args:
+            n (int): Number of top movies to return.
+        Returns:
+            pandas.Series: Movie titles and their review counts.
+        """
         return self.data['movie_title'].value_counts().head(n)
-    
+
     def average_rating_per_movie(self):
+        """
+        Calculate the average rating for each movie.
+        Returns:
+            pandas.Series: Average rating per movie.
+        """
         return self.data.groupby('movie_title')['rating'].mean()
-    
+
     def articles_in_category(self, category):
+        """
+        Get all articles in a specified category.
+        Args:
+            category (str): Category name.
+        Returns:
+            pandas.DataFrame: Articles in the category.
+        """
         return self.data[self.data['category'] == category]
-    
+
     def most_active_author(self):
+        """
+        Find the author with the most articles.
+        Returns:
+            str: Author name.
+        """
         return self.data['author'].value_counts().idxmax()
-    
+
     def number_of_articles_per_month(self):
+        """
+        Count the number of articles published each month.
+        Returns:
+            pandas.Series: Number of articles per month.
+        """
         return self.data['publish_date'].dt.to_period('M').value_counts().sort_index()
-    
+
     def extract_keywords(self, column, top_n=10):
+        """
+        Extract the top N most common keywords from a text column.
+        Args:
+            column (str): Column name to extract keywords from.
+            top_n (int): Number of top keywords to return.
+        Returns:
+            list: List of top keywords.
+        """
         all_words = self.data[column].dropna().astype(str).str.lower().str.cat(sep=' ')
         words = re.findall(r'\b\w+\b', all_words)
         common_words = Counter(words).most_common(top_n)
         return [word for word, _ in common_words]
-    
+
     def detect_extremely_long_or_short_reviews(self, min_length=10, max_length=500):
-        long_reviews = self.data[self.data['review_length'] > max_length]
-        short_reviews = self.data[self.data['review_length'] < min_length]
-        return long_reviews, short_reviews
-    
+        """
+        Detect reviews that are extremely long or short based on word count.
+        Args:
+            min_length (int): Minimum word count for a review to be considered short.
+            max_length (int): Maximum word count for a review to be considered long.
+        Returns:
+            tuple: (long_reviews, short_reviews) DataFrames.
+        """
+        long_reviews_local = self.data[self.data['review_length'] > max_length]
+        short_reviews_local = self.data[self.data['review_length'] < min_length]
+        return long_reviews_local, short_reviews_local
+
     def create_sentiment_proxy(self, positive_threshold=7, negative_threshold=4):
+        """
+        Create a sentiment proxy column based on rating thresholds.
+        Args:
+            positive_threshold (float): Minimum rating for positive sentiment.
+            negative_threshold (float): Maximum rating for negative sentiment.
+        """
         self.data['sentiment'] = 'Neutral'
         self.data.loc[self.data['rating'] >= positive_threshold, 'sentiment'] = 'Positive'
         self.data.loc[self.data['rating'] <= negative_threshold, 'sentiment'] = 'Negative'
@@ -124,31 +240,16 @@ class MovieReviewAnalyser:
 
 
 # prepare folder structure
-'''
-project/
-│── data/
-│    └── original.csv
-│    └── cleaned_data.csv
-│    └── summary.csv
-│
-│── plots/
-│    └── rating_histogram.png
-│    └── reviews_over_time.png
-│
-│── movie_review.py
-│── README.md
-'''
 if not os.path.exists('plots'):
     os.makedirs('plots')
 if not os.path.exists('data'):
     os.makedirs('data')
 
-sFileToAnalyse = r'data/original.csv'
+SFILE_TO_ANALYSE = r'data/original.csv'
 
 
 # A.1 Load the CSV using pandas.read_csv()
-#analyser = MovieReviewAnalyser(r'c:\temp\VS\Movie_Reviews_Dataset_UTF8.csv')
-analyser = MovieReviewAnalyser(sFileToAnalyse)
+analyser = MovieReviewAnalyser(SFILE_TO_ANALYSE)
 
 # A.2a Display: First 10 rows
 print("A.2a First 10 rows of the dataset:")
@@ -156,7 +257,7 @@ print(analyser.display_first_n_rows(10))
 
 # A.2b Display: Dataset shape
 print("A.2b Dataset shape:")
-print(analyser.data.shape)  
+print(analyser.data.shape)
 
 # A.2c Display: Column names
 print("A.2c Column names:")
@@ -173,7 +274,6 @@ print(analyser.data.isnull().sum())
 # A.3b Identify: Duplicate rows
 print("A.3b Duplicate rows:")
 print(analyser.data.duplicated().sum())
-
 
 # B Data Cleaning
 print("B Data Cleaning")
@@ -220,10 +320,24 @@ print(articles_per_month)
 
 # E Data Visualization (Matplotlib)
 class MovieVisualization(MovieReviewAnalyser):
+    """
+    Class for visualizing movie review and news datasets using matplotlib.
+    Provides methods for various plots and charts.
+    """
     def __init__(self, file_path):
-        super().__init__(file_path)
-    
+        """
+        Initialize the MovieVisualization with a CSV file path.
+        Loads the data into a pandas DataFrame for visualization.
+        Args:
+            file_path (str): Path to the CSV file.
+        """
+        MovieReviewAnalyser.__init__(self, file_path)
+
     def plot_rating_distribution(self):
+        """
+        Plot and save a histogram showing the distribution of movie ratings.
+        The plot is saved to 'plots/rating_distribution.png'.
+        """
         plt.figure(figsize=(10, 6))
         self.data['rating'].hist(bins=10, edgecolor='black')
         plt.title('Distribution of Movie Ratings')
@@ -233,21 +347,29 @@ class MovieVisualization(MovieReviewAnalyser):
         plt.savefig('plots/rating_distribution.png')
 
     def plot_average_rating_per_movie(self):
-        average_rating_per_movie = self.data.groupby('movie_title')['rating'].mean().sort_values(ascending=False).head(10)
+        """
+        Plot and save a bar chart of the top 10 movies by average rating.
+        The plot is saved to 'plots/average_rating_per_movie.png'.
+        """
+        avg_rating_per_movie = self.data.groupby('movie_title')['rating'].mean().sort_values(ascending=False).head(10)
         plt.figure(figsize=(12, 6))
-        average_rating_per_movie.plot(kind='bar', color='skyblue', edgecolor='black')
+        avg_rating_per_movie.plot(kind='bar', color='skyblue', edgecolor='black')
         plt.title('Average Rating per Movie')
         plt.xlabel('Movie Title')
         plt.ylabel('Average Rating')
         plt.xticks(rotation=45, ha='right')
         #plt.show()
         plt.savefig('plots/average_rating_per_movie.png')
-    
+
     def plot_reviews_over_time(self):
+        """
+        Plot and save a line chart showing the number of reviews over time (by month).
+        The plot is saved to 'plots/reviews_over_time.png'.
+        """
         self.data['review_date'] = pd.to_datetime(self.data['review_date'], errors='coerce')
         mask = self.data['review_date'].notna()
         reviews_over_time = self.data.loc[mask].groupby(self.data.loc[mask, 'review_date'].dt.to_period('M')).size()
-        plt.figure(figsize=(12, 6)) 
+        plt.figure(figsize=(12, 6))
         reviews_over_time.plot(kind='line', marker='o', color='skyblue')
         plt.title('Number of Reviews Over Time')
         plt.xlabel('Month')
@@ -255,8 +377,12 @@ class MovieVisualization(MovieReviewAnalyser):
         plt.xticks(rotation=45)
         #plt.show()
         plt.savefig('plots/reviews_over_time.png')
-    
+
     def plot_articles_per_category(self):
+        """
+        Plot and save a bar chart showing the number of articles per category.
+        The plot is saved to 'plots/articles_per_category.png'.
+        """
         articles_per_category = self.data['category'].value_counts()
         plt.figure(figsize=(12, 6))
         articles_per_category.plot(kind='bar', color='skyblue', edgecolor='black')
@@ -268,11 +394,15 @@ class MovieVisualization(MovieReviewAnalyser):
         plt.savefig('plots/articles_per_category.png')
 
     def plot_articles_per_month(self):
+        """
+        Plot and save a line chart showing the number of articles published each month.
+        The plot is saved to 'plots/articles_per_month.png'.
+        """
         self.data['publish_date'] = pd.to_datetime(self.data['publish_date'], errors='coerce')
         mask = self.data['publish_date'].notna()
-        articles_per_month = self.data.loc[mask].groupby(self.data.loc[mask, 'publish_date'].dt.to_period('M')).size()
+        articles_per_month_local = self.data.loc[mask].groupby(self.data.loc[mask, 'publish_date'].dt.to_period('M')).size()
         plt.figure(figsize=(12, 6))
-        articles_per_month.plot(kind='line', marker='o', color='skyblue')
+        articles_per_month_local.plot(kind='line', marker='o', color='skyblue')
         plt.title('Articles per Month')
         plt.xlabel('Month')
         plt.ylabel('Number of Articles')
@@ -281,6 +411,10 @@ class MovieVisualization(MovieReviewAnalyser):
         plt.savefig('plots/articles_per_month.png')
 
     def plot_article_length_distribution(self):
+        """
+        Plot and save a histogram showing the distribution of article/review lengths (word count).
+        The plot is saved to 'plots/article_length_distribution.png'.
+        """
         plt.figure(figsize=(12, 6))
         self.data['review_length'].hist(bins=20, edgecolor='black')
         plt.title('Distribution of Article Lengths (Word Count)')
@@ -288,7 +422,7 @@ class MovieVisualization(MovieReviewAnalyser):
         plt.ylabel('Frequency')
         #plt.show()
         plt.savefig('plots/article_length_distribution.png')
-    
+
 MovieVisual = MovieVisualization('data/cleaned_data.csv')
 
 # E.1.1 Data Visualization (Matplotlib) - Movie reviews: Histogram: rating distribution
@@ -327,6 +461,3 @@ print(short_reviews[['review_text', 'review_length']].head())
 print("F.4 Optional Advanced Tasks - Create a 'sentiment proxy' using rating thresholds:")
 analyser.create_sentiment_proxy(positive_threshold=7, negative_threshold=4)
 print(analyser.data[['rating', 'sentiment']].head())
-
-
-
