@@ -1,8 +1,8 @@
 """
-Sentiment Analysis Pipeline - Steps 1 to 4
+Sentiment Analysis Pipeline - Steps 1 to 5
 ------------------------------------------
 
-This module implements the first four steps of a complete
+This module implements the first five steps of a complete
 sentiment-analysis pipeline for movie review texts.
 
 Step 1:
@@ -17,19 +17,11 @@ Step 3:
 Step 4:
     Convert tokens to numerical token IDs.
 
+Step 5:
+    Apply padding and create attention masks.
+
 Final:
     Store results into result.csv.
-
-Input:
-    movie_reviews.csv
-        Column: review -> str
-
-Output:
-    result.csv with columns:
-        - review
-        - clean_review
-        - tokens
-        - token_ids
 """
 
 import re
@@ -40,7 +32,6 @@ from transformers import BertTokenizer
 # Step 1: Load input CSV file
 # ---------------------------------------------------
 INPUT_FILE = "movie_reviews.csv"
-OUTPUT_FILE = "result.csv"
 
 try:
     df = pd.read_csv(INPUT_FILE)
@@ -61,7 +52,7 @@ def clean_text(text: str) -> str:
     text = text.lower()
     text = re.sub(r"<[^>]+>", " ", text)              # remove HTML tags
     text = re.sub(r"[^a-z0-9.,!?\\s]", " ", text)     # remove unwanted chars
-    text = re.sub(r"\\s+", " ", text)                 # collapse multiple spaces
+    text = re.sub(r"\\s+", " ", text)                 # collapse spaces
     return text.strip()
 
 df["clean_review"] = df["review"].apply(clean_text)
@@ -97,12 +88,38 @@ df["token_ids"] = df["tokens"].apply(tokens_to_ids)
 print("\nToken ID preview:")
 print(df[["tokens", "token_ids"]].head())
 
+# ---------------------------------------------------
+# Step 5: Padding & Attention Masks
+# ---------------------------------------------------
+
+MAX_LEN = 64  # you can adjust this
+
+def encode_with_padding(text: str):
+    """Encode text using BERT tokenizer with padding and attention masks."""
+    encoding = tokenizer.encode_plus(
+        text,
+        add_special_tokens=True,
+        max_length=MAX_LEN,
+        padding="max_length",
+        truncation=True,
+        return_attention_mask=True,
+        return_tensors="pt"  # returns PyTorch tensors
+    )
+    return encoding["input_ids"][0].tolist(), encoding["attention_mask"][0].tolist()
+
+df["input_ids"], df["attention_mask"] = zip(
+    *df["clean_review"].apply(encode_with_padding)
+)
+
+print("\nInput IDs and Attention Mask preview:")
+print(df[["clean_review", "input_ids", "attention_mask"]].head())
+
 # Final dataset
 df_ids = df.copy()
 
 # ---------------------------------------------------
 # Save results to CSV
 # ---------------------------------------------------
-
+OUTPUT_FILE = "result.csv"
 df_ids.to_csv(OUTPUT_FILE, index=False)
 print(f"\nResult saved to {OUTPUT_FILE}")
