@@ -1,31 +1,66 @@
 """
-This script represents the first step of building a complete
+Sentiment Analysis Pipeline - Step 1 & Step 2
+---------------------------------------------
+
+This module implements the first two steps of a complete
 sentiment‑analysis pipeline for movie review texts.
 
-Purpose:
-    - Load the input CSV file `movie_reviews.csv`
-      containing one movie‑review sentence per row.
-    - Prepare the dataset for further NLP preprocessing
-      (cleaning, tokenization, embedding, etc.).
+Step 1:
+    Load the input CSV file `movie_reviews.csv`
+    containing one movie-review sentence per row.
+
+Step 2:
+    Clean and preprocess the text to prepare it
+    for tokenization and later ML model input.
+
+Cleaning operations include:
+    - Lowercasing
+    - Removing HTML tags
+    - Removing non-alphanumeric characters (except .,!?)
+    - Normalizing whitespace
+    - Stripping leading/trailing spaces
 
 Input:
     movie_reviews.csv
-        A CSV file with a single column:
-            review  -> str, one sentence per row
+        Column: review -> str, one sentence per row
 
 Output:
-    Prints confirmation that the data has been loaded
-    and displays the first few rows of the dataset.
+    DataFrame `df_clean` containing cleaned text
 """
 
+import re
 import pandas as pd
 
+# ---------------------------------------------------
 # Step 1: Load input CSV file
+# ---------------------------------------------------
 INPUT_FILE = "movie_reviews.csv"
 
 try:
     df = pd.read_csv(INPUT_FILE)
     print("CSV file loaded successfully!")
-    print(df.head())  # Preview the first rows
 except FileNotFoundError:
     print(f"Error: The file '{INPUT_FILE}' was not found in the current directory.")
+    raise
+
+print("\nOriginal data preview:")
+print(df.head())
+
+# ---------------------------------------------------
+# Step 2: Text Cleaning & Preprocessing
+# ---------------------------------------------------
+
+def clean_text(text: str) -> str:
+    """Apply basic NLP cleaning to a text string."""
+    text = text.lower()                                     # lowercase
+    text = re.sub(r"<[^>]+>", " ", text)                    # remove HTML tags
+    text = re.sub(r"[^a-z0-9.,!?\\s]", " ", text)           # remove unwanted characters
+    text = re.sub(r"\\s+", " ", text)                       # collapse spaces
+    return text.strip()                                     # strip whitespace
+
+df["clean_review"] = df["review"].apply(clean_text)
+
+print("\nCleaned data preview:")
+print(df.head())
+
+df_clean = df.copy()
