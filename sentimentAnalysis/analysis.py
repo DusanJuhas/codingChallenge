@@ -1,18 +1,35 @@
 """
-Sentiment Analysis Pipeline - Steps 1 to 6
-------------------------------------------
+Sentiment Analysis Pipeline - Steps 1 to 7 (Practical Version)
+-------------------------------------------------------------
 
-This module implements a sentiment-analysis pipeline using BERT.
-Steps included:
+This script implements a practical, real-world BERT-based
+sentiment-analysis pipeline for movie reviews.
 
-1. Load input CSV file.
-2. Clean and preprocess the text.
-3. Tokenize using a BERT WordPiece tokenizer.
-4. Convert tokens to numerical IDs.
-5. Apply padding and create attention masks.
-6. Run an IMDB-trained BERT classifier to predict sentiment.
+Step 1:
+    Load the input CSV file.
 
-The output is stored in result.csv.
+Step 2:
+    Clean and preprocess the text.
+
+Step 3:
+    Tokenize cleaned text using BERT WordPiece tokenizer.
+
+Step 4:
+    Convert tokens to numerical token IDs.
+
+Step 5:
+    Apply padding and create attention masks.
+
+Step 6:
+    Run a pretrained BERT sentiment classifier (IMDB model).
+
+Step 7:
+    Produce final sentiment predictions with confidence
+    and save the results to CSV files.
+
+The output includes:
+- result.csv: full internal data (debug/log format)
+- predictions.csv: clean human-readable sentiment labels
 """
 
 import re
@@ -68,7 +85,7 @@ tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 def tokenize_text(text: str):
     """
-    Tokenize text into BERT WordPiece tokens.
+    Tokenize text into WordPiece tokens using BERT tokenizer.
     """
     return tokenizer.tokenize(text)
 
@@ -103,11 +120,9 @@ MAX_LEN = 64
 
 def encode_with_padding(text: str):
     """
-    Encode text using BERT tokenizer with:
-    - special tokens
-    - fixed-length padding
-    - attention masks
-    Returns: (input_ids, attention_mask)
+    Encode text using the BERT tokenizer, generating:
+    - input_ids (padded)
+    - attention_mask (1=token, 0=padding)
     """
     encoding = tokenizer(
         text,
@@ -133,9 +148,9 @@ print(df[["clean_review", "input_ids", "attention_mask"]].head())
 
 
 # ---------------------------------------------------
-# Step 6: Real BERT Model Sentiment Classification
+# Step 6: Real BERT Sentiment Classification (IMDB model)
 # ---------------------------------------------------
-print("\nLoading BERT sentiment model...")
+print("\nLoading BERT IMDB sentiment model...")
 model = BertForSequenceClassification.from_pretrained(
     "textattack/bert-base-uncased-imdb"
 )
@@ -144,10 +159,8 @@ model.eval()
 
 def classify_sentiment(input_ids, attention_mask):
     """
-    Perform inference using a pretrained IMDB BERT classifier.
-    Returns:
-    - sentiment label ("positive" or "negative")
-    - probability vector
+    Perform inference using the pretrained IMDB BERT classifier.
+    Returns the raw sentiment label and probability vector.
     """
     ids_tensor = torch.tensor(input_ids).unsqueeze(0)
     mask_tensor = torch.tensor(attention_mask).unsqueeze(0)
@@ -163,22 +176,46 @@ def classify_sentiment(input_ids, attention_mask):
     return sentiment_label, probabilities
 
 
-df["sentiment"], df["probabilities"] = zip(
+df["sentiment_raw"], df["probabilities"] = zip(
     *df.apply(
         lambda row: classify_sentiment(row["input_ids"], row["attention_mask"]),
         axis=1,
     )
 )
 
-print("\nSentiment prediction preview:")
-print(df[["clean_review", "sentiment", "probabilities"]].head())
+print("\nRaw sentiment prediction preview:")
+print(df[["clean_review", "sentiment_raw", "probabilities"]].head())
 
 
 # ---------------------------------------------------
-# Save results to CSV
+# Step 7: Produce final clean sentiment output
 # ---------------------------------------------------
-df_final = df.copy()
+def final_prediction(label, probabilities):
+    """
+    Format the final sentiment label with a confidence percentage.
+    """
+    positive_prob = probabilities[1]
+    negative_prob = probabilities[0]
+    confidence = round(max(positive_prob, negative_prob) * 100, 2)
+    return f"{label} ({confidence}%)"
 
+
+df["final_sentiment"] = df.apply(
+    lambda row: final_prediction(row["sentiment_raw"], row["probabilities"]),
+    axis=1
+)
+
+print("\nFinal sentiment prediction preview:")
+print(df[["clean_review", "final_sentiment"]].head())
+
+
+# Save simplified predictions file
+PRED_FILE = "predictions.csv"
+df[["review", "final_sentiment"]].to_csv(PRED_FILE, index=False)
+print(f"\nHuman-readable predictions saved to {PRED_FILE}")
+
+
+# Save the full dataset for debugging
 OUTPUT_FILE = "result.csv"
-df_final.to_csv(OUTPUT_FILE, index=False)
-print(f"\nResult saved to {OUTPUT_FILE}")
+df.to_csv(OUTPUT_FILE, index=False)
+print(f"Full result saved to {OUTPUT_FILE}")
