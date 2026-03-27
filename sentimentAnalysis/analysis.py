@@ -89,23 +89,27 @@ print("\nToken ID preview:")
 print(df[["tokens", "token_ids"]].head())
 
 # ---------------------------------------------------
-# Step 5: Padding & Attention Masks
+# Step 5: Padding & Attention Masks (FIXED)
 # ---------------------------------------------------
 
-MAX_LEN = 64  # you can adjust this
+MAX_LEN = 64  # Adjust as needed
 
 def encode_with_padding(text: str):
-    """Encode text using BERT tokenizer with padding and attention masks."""
-    encoding = tokenizer.encode_plus(
+    """Encode text using BERT tokenizer with padding & attention masks."""
+    encoding = tokenizer(
         text,
         add_special_tokens=True,
         max_length=MAX_LEN,
         padding="max_length",
         truncation=True,
         return_attention_mask=True,
-        return_tensors="pt"  # returns PyTorch tensors
+        return_tensors="pt"  # PyTorch tensors
     )
-    return encoding["input_ids"][0].tolist(), encoding["attention_mask"][0].tolist()
+
+    return (
+        encoding["input_ids"][0].tolist(),
+        encoding["attention_mask"][0].tolist()
+    )
 
 df["input_ids"], df["attention_mask"] = zip(
     *df["clean_review"].apply(encode_with_padding)
