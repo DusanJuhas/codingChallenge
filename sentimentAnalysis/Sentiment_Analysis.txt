@@ -1,0 +1,91 @@
+🧩 Your Tasks — Implement These 7 Steps
+Step 1 — Load Input File
+Load movie_reviews.csv into a pandas DataFrame.
+
+Requirements:
+
+Validate that the file exists
+Show the first few lines for confirmation
+Step 2 — Clean and Preprocess Text
+Create a function that:
+
+lowercases the review
+removes HTML tags
+removes non‑alphanumeric characters except punctuation (. , ! ?)
+collapses multiple spaces
+trims the result
+Output: add a new column: clean_review
+
+Step 3 — Tokenization Using BERT Tokenizer
+Use the HuggingFace BertTokenizer to split each cleaned review into WordPiece tokens.
+
+Output: add a column: tokens containing a list of tokens
+
+Step 4 — Convert Tokens to Numerical IDs
+Transform each token into its vocabulary ID using the BERT tokenizer.
+
+Output: new column: token_ids
+
+Step 5 — Padding & Attention Masks
+Encode each review into:
+
+padded input_ids
+attention_mask
+All sequences must have the same fixed length (e.g., 64 tokens).
+
+Output: two new columns:
+
+input_ids
+attention_mask
+Step 6 — Run a Pretrained BERT Sentiment Classifier
+Use the pretrained model:
+
+textattack/bert-base-uncased-imdb
+For each review, run the model to obtain:
+
+raw sentiment (positive/negative)
+probability vector from softmax
+Output: two columns:
+
+sentiment_raw
+probabilities
+Step 7 — Produce Final Sentiment Predictions
+For each review:
+
+choose the higher‑confidence label
+compute confidence as a percentage
+format final output like:
+positive (97.44%)
+Output: a new column: final_sentiment
+
+Also generate:
+
+✔ predictions.csv
+Contains:
+
+original review
+final sentiment prediction
+✔ result.csv
+Contains all intermediate steps
+(Useful for debugging or teaching.)
+
+⚠ Important Note on Model & Library Size
+This project downloads large components:
+
+PyTorch (torch) — may require hundreds of MB
+BERT model (IMDB) — ~400–500 MB download
+Students should ensure:
+
+at least 1 GB free disk space
+a stable network connection
+optional: clean HuggingFace cache using huggingface-cli delete-cache
+🎯 What You Must Submit
+analysis.py — your complete working solution
+predictions.csv — final output
+result.csv — full debug pipeline
+A short note (5–10 lines) summarizing what you learned
+📝 Bonus Challenges (Optional)
+Add a progress bar (tqdm)
+Add GPU support if available
+Try a different sentiment model (e.g., RoBERTa)
+Add a CLI argument for input file
