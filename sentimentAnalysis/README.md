@@ -54,13 +54,45 @@ Dependencies include:
 - `transformers`
 - `torch`
 
+## Project Structure
+The pipeline is organized as an object-oriented package, with each
+stage of the process implemented as its own class in its own file:
+
+```
+main.py
+sentiment_pipeline/
+├── __init__.py          # exposes all classes for import
+├── data_loader.py        # DataLoader        -> Step 1: load CSV
+├── text_cleaner.py       # TextCleaner        -> Step 2: clean/preprocess text
+├── bert_encoder.py       # BertTextEncoder     -> Steps 3-5: tokenize, IDs, padding/masks
+├── classifier.py         # SentimentClassifier -> Step 6: BERT IMDB inference
+├── result_formatter.py   # ResultFormatter     -> Step 7: format & save results
+└── pipeline.py            # SentimentPipeline   -> orchestrates all steps
+```
+
+`SentimentPipeline` wires the stages together and exposes a single
+`run()` method that executes the full pipeline end-to-end, identical
+in behavior to the original procedural script.
+
+You can also import and reuse individual classes elsewhere, e.g.:
+
+```python
+from sentiment_pipeline import TextCleaner
+
+cleaner = TextCleaner()
+clean_text = cleaner.clean("Some <b>raw</b> review text!")
+```
+
 ## How to Run
-1. Place your input file `movie_reviews.csv` in the project directory.
-2. Run the main script:
+1. Place your input file `movie_reviews.csv` in the project directory (next to `main.py`).
+2. Run the entry point script:
 
 ```bash
-python analysis.py
+python main.py
 ```
+
+This instantiates `SentimentPipeline` and calls `.run()`, which executes
+all seven steps in sequence and saves the output files.
 
 ## Output Files
 ### `predictions.csv`
