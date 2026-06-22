@@ -1,0 +1,6 @@
+ - improve README
+ - install pylint and check findings
+ - consider usage of functions
+ - delete CSVread
+ - fix absolute path of CSV
+ - fix resample("M")
