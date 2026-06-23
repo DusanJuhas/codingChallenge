@@ -1,18 +1,25 @@
 import pandas as pd
-import os
 from pathlib import Path
-import re
-
 import requests
+import torch
 
 #Step 1 — Load Input File
-# 1.1 Validate that the file exists
+# 1.1 Validate that the files exists
 
-if not os.path.isfile('movie_reviews.csv'):
-    print("Error: 'movie_reviews.csv' not found in the current directory.")
+SCRIPT_DIR = Path(__file__).resolve().parent
+INPUT_CSV = SCRIPT_DIR / 'movie_reviews.csv'
+PREDICTIONS_CSV = SCRIPT_DIR / 'predictions.csv'
+RESULT_CSV = SCRIPT_DIR / 'result.csv'
+LOCAL_MODEL_DIR = Path(
+    'c:/Users/Z128278/OneDrive - ZF Friedrichshafen AG/ZFOnedriveDocu/VS/miniProject_sentimentAnalyzer/local_models/textattack-bert-base-uncased-imdb'
+)
+
+
+if not INPUT_CSV.is_file():
+    raise FileNotFoundError(f"Input file not found: {INPUT_CSV}")
 
 # Load movie_reviews.csv into a pandas DataFrame.
-df = pd.read_csv('movie_reviews.csv')
+df = pd.read_csv(INPUT_CSV)
 # 1.2 Show the first few lines for confirmation
 #print(df.head())
 
@@ -32,45 +39,29 @@ df['review'] = df['review'].str.replace(r'\s+', ' ', regex=True).str.strip()
 df['clean_review'] = df['review']
 #print(df.head())
 
-#Step 3 — Tokenization Using BERT Tokenizer
-from transformers import BertTokenizer
-# 3.1 By default, run fully offline without external downloads.
-# Set TOKENIZER_MODE=bert_local and HF_MODEL_DIR=<local model path> to use local BERT files.
-def simple_tokenize(text: str):
-    # Split words and keep punctuation tokens similar to basic NLP preprocessing.
-    return re.findall(r"[a-zA-Z0-9]+|[.,!?]", text)
+#Step 3 — Tokenization Using Model Tokenizer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+user_model_dir = LOCAL_MODEL_DIR
+if not (user_model_dir / 'config.json').exists():
+    raise RuntimeError(f"Model config.json not found in: {user_model_dir}")
 
-tokenizer_mode = os.getenv('TOKENIZER_MODE', 'bert_local')
-local_model_dir = os.getenv('HF_MODEL_DIR', os.getenv('HF_SENTIMENT_MODEL_DIR', 'local_models/textattack-bert-base-uncased-imdb'))
+try:
+    tokenizer = AutoTokenizer.from_pretrained(user_model_dir, local_files_only=True)
+    model = AutoModelForSequenceClassification.from_pretrained(user_model_dir, local_files_only=True)
+except (requests.exceptions.SSLError, OSError, ValueError) as exc:
+    raise RuntimeError(
+        "Failed to load local sentiment model/tokenizer. Ensure provided directory contains files like "
+        "config.json, model.safetensors (or pytorch_model.bin), and tokenizer files."
+    ) from exc
 
-if tokenizer_mode == 'bert_local':
-    if not local_model_dir:
-        raise RuntimeError(
-            "TOKENIZER_MODE=bert_local requires HF_MODEL_DIR pointing to a local BERT tokenizer directory."
-        )
-
-    try:
-        tokenizer = BertTokenizer.from_pretrained(Path(local_model_dir), local_files_only=True)
-        df['tokens'] = df['clean_review'].apply(tokenizer.tokenize)
-    except (requests.exceptions.SSLError, OSError, ValueError) as exc:
-        raise RuntimeError(
-            "Failed to load local BERT tokenizer. Ensure HF_MODEL_DIR contains tokenizer files "
-            "(vocab.txt, tokenizer_config.json, special_tokens_map.json)."
-        ) from exc
-else:
-    df['tokens'] = df['clean_review'].apply(simple_tokenize)
+df['tokens'] = df['clean_review'].apply(tokenizer.tokenize)
 
 #print(df.head())
 
 #Step 4 — Convert Tokens to Numerical IDs
 #Output: new column: token_ids
-if tokenizer_mode == 'bert_local':
-    df['token_ids'] = df['tokens'].apply(tokenizer.convert_tokens_to_ids)
-else:
-    # For simple tokenization, create a basic vocabulary mapping
-    vocab = {token: idx for idx, token in enumerate(set(token for tokens in df['tokens'] for token in tokens))}
-    df['token_ids'] = df['tokens'].apply(lambda tokens: [vocab[token] for token in tokens])
+df['token_ids'] = df['tokens'].apply(tokenizer.convert_tokens_to_ids)
 
 #print(df.head())
 
@@ -89,69 +80,67 @@ attention_mask
 '''
 max_length = 64
 
-def pad_and_create_attention_mask(token_ids):
-    # 1) Truncate so we have space for [CLS] and [SEP]
-    token_ids = token_ids[: max_length - 2]
+def encode_for_model(text):
+    encoded = tokenizer(
+        text,
+        add_special_tokens=True,
+        truncation=True,
+        max_length=max_length,
+        padding='max_length',
+        return_attention_mask=True,
+    )
+    return encoded['input_ids'], encoded['attention_mask']
 
-    # 2) Add special tokens explicitly
-    input_ids = [tokenizer.cls_token_id] + token_ids + [tokenizer.sep_token_id]
-
-    # 3) Padding
-    pad_len = max_length - len(input_ids)
-    input_ids = input_ids + [tokenizer.pad_token_id] * pad_len
-
-    # 4) Attention mask (1 for real tokens incl. [CLS]/[SEP], 0 for padding)
-    attention_mask = [1] * (max_length - pad_len) + [0] * pad_len
-
-    return input_ids, attention_mask
-
-df[['input_ids', 'attention_mask']] = df['token_ids'].apply(
-    lambda ids: pd.Series(pad_and_create_attention_mask(ids))
+df[['input_ids', 'attention_mask']] = df['clean_review'].apply(
+    lambda text: pd.Series(encode_for_model(text))
 )
 
 #print(df.head())
 
 #Step 6 — Run a Pretrained BERT Sentiment Classifier
 '''
-Use the pretrained model:
-
-textattack/bert-base-uncased-imdb
+Use a local sentiment model.
 For each review, run the model to obtain:
 
-raw sentiment (positive/negative)
+raw sentiment label
 probability vector from softmax
 Output: two columns:
 
 sentiment_raw
 probabilities
 '''
-from transformers import BertForSequenceClassification, BertTokenizer
+id2label = {int(k): v for k, v in model.config.id2label.items()} if model.config.id2label else {}
 
-local_sentiment_model_dir = os.getenv('HF_SENTIMENT_MODEL_DIR', 'local_models/textattack-bert-base-uncased-imdb')
-model_path = Path(local_sentiment_model_dir)
 
-if not model_path.exists():
-    raise RuntimeError(
-        f"Local model directory not found: {model_path}. "
-        "Copy the sentiment model files to this folder or set HF_SENTIMENT_MODEL_DIR."
-    )
+def normalize_label(raw_label, predicted_idx):
+    label = str(raw_label).strip().lower()
+    if 'neg' in label:
+        return 'negative'
+    if 'neu' in label:
+        return 'neutral'
+    if 'pos' in label:
+        return 'positive'
 
-try:
-    model = BertForSequenceClassification.from_pretrained(model_path, local_files_only=True)
-    tokenizer = BertTokenizer.from_pretrained(model_path, local_files_only=True)
-except (requests.exceptions.SSLError, OSError, ValueError) as exc:
-    raise RuntimeError(
-        "Failed to load local sentiment model. Ensure directory contains model files like "
-        "config.json, pytorch_model.bin (or model.safetensors), vocab.txt, tokenizer_config.json."
-    ) from exc
-import torch
+    # Fallback for generic labels such as LABEL_0, LABEL_1.
+    if model.config.num_labels == 2:
+        index_map = {0: 'negative', 1: 'positive'}
+        return index_map.get(predicted_idx, 'negative')
+
+    # Fallback for generic labels such as LABEL_0, LABEL_1, LABEL_2.
+    if model.config.num_labels == 3:
+        index_map = {0: 'negative', 1: 'neutral', 2: 'positive'}
+        return index_map.get(predicted_idx, 'neutral')
+
+    return f"label_{predicted_idx}"
 
 def predict_sentiment(input_ids, attention_mask):
     with torch.no_grad():
         outputs = model(input_ids=torch.tensor([input_ids]), attention_mask=torch.tensor([attention_mask]))
         logits = outputs.logits
         probabilities = torch.softmax(logits, dim=1).squeeze().tolist()
-        sentiment_raw = 'positive' if probabilities[1] > probabilities[0] else 'negative'
+        predicted_idx = int(torch.argmax(logits, dim=1).item())
+        raw_label = id2label.get(predicted_idx, f'LABEL_{predicted_idx}')
+        sentiment_raw = normalize_label(raw_label, predicted_idx)
     return sentiment_raw, probabilities
 df[['sentiment_raw', 'probabilities']] = df.apply(lambda row: pd.Series(predict_sentiment(row['input_ids'], row['attention_mask'])), axis=1)
 #print(df.head())
@@ -180,10 +169,13 @@ Contains all intermediate steps
 def format_final_sentiment(sentiment_raw, probabilities):
     confidence = max(probabilities) * 100
     return f"{sentiment_raw} ({confidence:.2f}%)"
-df['final_sentiment'] = df.apply(lambda row: format_final_sentiment(row['sentiment_raw'], row['probabilities']), axis=1)
+df['final_sentiment'] = df.apply(
+    lambda row: format_final_sentiment(row['sentiment_raw'], row['probabilities']),
+    axis=1
+)
 # Save predictions.csv with original review and final sentiment prediction
-df[['review', 'final_sentiment']].to_csv('predictions.csv', index=False)
+df[['review', 'final_sentiment']].to_csv(PREDICTIONS_CSV, index=False)
 # Save result.csv with all intermediate steps
-df.to_csv('result.csv', index=False)
+df.to_csv(RESULT_CSV, index=False)
 
 print(df.head())
