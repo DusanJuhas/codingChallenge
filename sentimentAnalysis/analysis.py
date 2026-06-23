@@ -2,6 +2,8 @@ import pandas as pd
 from pathlib import Path
 import requests
 import torch
+import sys
+from bs4 import BeautifulSoup
 
 #Step 1 — Load Input File
 # 1.1 Validate that the files exists
@@ -16,7 +18,8 @@ LOCAL_MODEL_DIR = Path(
 
 
 if not INPUT_CSV.is_file():
-    raise FileNotFoundError(f"Input file not found: {INPUT_CSV}")
+    print(f"Error: Input file not found: {INPUT_CSV}")
+    sys.exit(1)
 
 # Load movie_reviews.csv into a pandas DataFrame.
 df = pd.read_csv(INPUT_CSV)
@@ -27,10 +30,10 @@ df = pd.read_csv(INPUT_CSV)
 #Step 2 — Clean and Preprocess Text
 # 2.1 lowercases the reviews for uniformity.
 df['review'] = df['review'].str.lower()
-# 2.2 removes HTML tags using regex.
-df['review'] = df['review'].str.replace(r'<.*?>', '', regex=True)
-# 2.3 removes non‑alphanumeric characters except punctuation (. , ! ?)
-df['review'] = df['review'].str.replace(r'[^a-zA-Z0-9.,!? ]', '', regex=True)
+# 2.2 removes HTML tags using BeautifulSoup.
+df['review'] = df['review'].apply(lambda x: BeautifulSoup(x, "html.parser").get_text())
+# 2.3 removes non‑alphanumeric characters except punctuation (. , ! ? ') and apostrophes for contractions.
+df['review'] = df['review'].str.replace(r"[^a-zA-Z0-9.,!?' ]", '', regex=True)
 # 2.4 collapses multiple spaces
 df['review'] = df['review'].str.replace(r'\s+', ' ', regex=True).str.strip()
 # 2.5 trims the result
